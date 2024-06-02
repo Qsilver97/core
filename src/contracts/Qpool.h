@@ -89,10 +89,10 @@ public:
 	};
 
 	struct AddLiquidity_input {
+		uint64_8 AmountOfTokens;            // Amount of tokens
 		uint32 NumberOfToken;      // Number of tokens to be deposited
 		id poolAddress;           // The address of pool for addition the liquidity 
 		id_8 AddressesOfToken;     // Address of tokens
-		uint64_8 AmountOfTokens;            // Amount of tokens
 	};
 
 	struct AddLiquidity_output {
