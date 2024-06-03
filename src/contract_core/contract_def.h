@@ -80,6 +80,26 @@ static void* __scratchpad();    // TODO: concurrency support (n buffers for n al
 #define CONTRACT_STATE2_TYPE QUTIL2
 #include "contracts/QUtil.h"
 
+#undef CONTRACT_INDEX
+#undef CONTRACT_STATE_TYPE
+#undef CONTRACT_STATE2_TYPE
+
+#define AIRDROP_CONTRACT_INDEX 5
+#define CONTRACT_INDEX AIRDROP_CONTRACT_INDEX
+#define CONTRACT_STATE_TYPE AIRDROP
+#define CONTRACT_STATE2_TYPE AIRDROP2
+#include "contracts/Airdrop.h"
+
+#undef CONTRACT_INDEX
+#undef CONTRACT_STATE_TYPE
+#undef CONTRACT_STATE2_TYPE
+
+#define QPOOL_CONTRACT_INDEX 6
+#define CONTRACT_INDEX QPOOL_CONTRACT_INDEX
+#define CONTRACT_STATE_TYPE QPOOL
+#define CONTRACT_STATE2_TYPE QPOOL2
+#include "contracts/Qpool.h"
+
 #define MAX_CONTRACT_ITERATION_DURATION 0 // In milliseconds, must be above 0; for now set to 0 to diable timeout, because a rollback mechanism needs to be implmented to properly handle timeout
 
 #undef INITIALIZE
@@ -116,6 +136,8 @@ constexpr struct ContractDescription
     {"RANDOM", 88, 10000, sizeof(IPO)},
     {"QUTIL", 99, 10000, sizeof(IPO)},
     {"MLM", 112, 10000, sizeof(IPO)},
+    {"AIRDROP", 112, 10000, sizeof(IPO)},
+    {"QPOOL", 112, 10000, sizeof(IPO)},
 };
 
 constexpr unsigned int contractCount = sizeof(contractDescriptions) / sizeof(contractDescriptions[0]);
@@ -191,6 +213,18 @@ static void initializeContract(const unsigned int contractIndex, void* contractS
     case QUTIL_CONTRACT_INDEX:
     {
         REGISTER_CONTRACT_FUNCTIONS_AND_PROCEDURES(QUTIL);
+    }
+    break;
+
+    case AIRDROP_CONTRACT_INDEX:
+    {
+        REGISTER_CONTRACT_FUNCTIONS_AND_PROCEDURES(AIRDROP);
+    }
+    break;
+
+    case QPOOL_CONTRACT_INDEX:
+    {
+        REGISTER_CONTRACT_FUNCTIONS_AND_PROCEDURES(QPOOL);
     }
     break;
     }
