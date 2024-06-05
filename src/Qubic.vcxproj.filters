@@ -114,6 +114,12 @@
     <ClInclude Include="contracts\Random.h">
       <Filter>contracts</Filter>
     </ClInclude>
+    <ClInclude Include="contracts\Airdrop.h">
+      <Filter>contracts</Filter>
+    </ClInclude>
+    <ClInclude Include="contracts\Qpool.h">
+      <Filter>contracts</Filter>
+    </ClInclude>
     <ClInclude Include="contract_core\contract_def.h">
       <Filter>contract_core</Filter>
     </ClInclude>
