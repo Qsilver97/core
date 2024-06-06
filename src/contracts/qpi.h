@@ -6213,7 +6213,7 @@ namespace QPI
 	#define PUBLIC_FUNCTION_WITH_LOCALS(function) \
 		public: \
 			enum { __is_function_##function = true }; \
-			static void function(const QPI::QpiContextFunctionCall& qpi, const CONTRACT_STATE_TYPE& state, function##_input& input, function##_output& output, function##_locals& locals) { constexpr unsigned int __functionOrProcedureId = (CONTRACT_INDEX << 22) | __LINE__; ::__beginFunctionOrProcedure(__functionOrProcedureId);
+			static void function(const QPI::QpiContextFunctionCall& qpi, CONTRACT_STATE_TYPE& state, function##_input& input, function##_output& output, function##_locals& locals) { constexpr unsigned int __functionOrProcedureId = (CONTRACT_INDEX << 22) | __LINE__; ::__beginFunctionOrProcedure(__functionOrProcedureId);
 
 	#define PUBLIC_PROCEDURE(procedure) \
 		public: \
