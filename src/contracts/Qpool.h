@@ -313,12 +313,12 @@ private:
 	};
 	array<_PoolInfo, QPOOL_MAX_NUMBER_OF_POOL> _pools;
 	sint64 BIGTest;
-	uint8_128 BIGStringNumber;
-	uint8 BIGStringNumberLen;
 	uint64_16777216 _QPTAmountOfUser; // Amount of LP token of nth user in Qpool
+	uint32 _NumberOfTotalUser;
 	id_16777216 _UserID;	   // The id of nth user in Qpool
 	uint16_16777216 _PoolNumberOfUser;     // The number of pool user provided
-	uint32 _NumberOfTotalUser;
+	uint8_128 BIGStringNumber;
+	uint8 BIGStringNumberLen;
 	bit BIGTestComparisonResult;
 
 	struct _tokenInfor
