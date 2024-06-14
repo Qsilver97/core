@@ -1052,8 +1052,18 @@ private:
 			tempResult.set(i, diff + '0');
 		}
 
-		output.resultlen = input.alen;
-		for(uint8 i = 0 ; i < output.resultlen; i++) output.result.set(i, tempResult.get(output.resultlen - i - 1));     // reverse
+		for(uint8 i = 0 ; i < input.alen; i++) output.result.set(i, tempResult.get(input.alen - i - 1));     // reverse
+
+		uint8 zeroCount = 0;
+
+		for(uint8 i = 0 ; i < input.alen; i++) {
+			if(output.result.get(i) != '0') break;
+			zeroCount++;
+		}
+
+		output.resultlen = 0;
+		for(uint8 i = zeroCount; i < input.alen; i++) output.result.set(output.resultlen++, output.result.get(i));
+		output.result.set(output.resultlen, '0');
 
 		for(uint8 i = 0 ; i < output.resultlen; i++) state.BIGStringNumber.set(i, output.result.get(i));
 		state.BIGStringNumberLen = output.resultlen;
@@ -1167,13 +1177,19 @@ private:
 	PUBLIC_PROCEDURE(BIGDiv)
 		uint8_128 tempa;
 		uint8_128 tempb;
+		uint8 tempalen = 0;
+		uint8 tempblen = 0;
 		uint8_128 tempResult;
 		bit sign = 0;
 		if(input.a.get(0) == '-') {     // when a is negative
 			sign ^= 1;
+			bit flag = 0;
 			// checking if a is number
 			for(uint8 i = 1 ; i < input.alen; i++) {
-				tempa.set(i - 1, input.a.get(i - 1));
+				if(input.a.get(i) != '0' || flag) {
+					flag = 1;
+					tempa.set(tempalen++, input.a.get(i));
+				}
 				if(input.a.get(i) >= '0' && input.a.get(i) <= '9') continue;
 
 				if (qpi.invocationReward() > 0)
@@ -1185,8 +1201,12 @@ private:
 		}
 		else {                // when positive
 			// checking if a is number
+			bit flag = 0;
 			for(uint8 i = 0; i < input.alen; i++) {
-				tempa.set(i, input.a.get(i));
+				if(input.a.get(i) != '0' || flag) {
+					flag = 1;
+					tempa.set(tempalen++, input.a.get(i));
+				}
 				if(input.a.get(i) >= '0' && input.a.get(i) <= '9') continue;
 
 				if (qpi.invocationReward() > 0)
@@ -1200,9 +1220,13 @@ private:
 		if(input.b.get(0) == '-') {     // when b is negative
 			sign ^= 1;
 			uint8 zeroCount = 0;
+			bit flag = 0;
 			// checking if b is number
 			for(uint8 i = 1 ; i < input.blen; i++) {
-				tempb.set(i - 1, input.b.get(i));
+				if(input.b.get(i) != '0' || flag) {
+					flag = 1;
+					tempb.set(tempblen++, input.b.get(i));
+				}
 				if(input.b.get(i) == '0') zeroCount++;
 				if(input.b.get(i) >= '0' && input.b.get(i) <= '9') continue;
 
@@ -1223,9 +1247,13 @@ private:
 		}
 		else {                // when positive
 			uint8 zeroCount = 0;
+			bit flag = 0;
 			// checking if b is number
 			for(uint8 i = 0; i < input.blen; i++) {
-				tempb.set(i, input.b.get(i));
+				if(input.b.get(i) != '0' || flag) {
+					flag = 1;
+					tempb.set(tempblen++, input.b.get(i));
+				}
 				if(input.b.get(i) == '0') zeroCount++;
 				if(input.b.get(i) >= '0' && input.b.get(i) <= '9') continue;
 
@@ -1256,27 +1284,31 @@ private:
 
 		uint8_128 current;
 		uint8 currentLen = 0;
-		for (uint8 i = 0; i < (input.alen == '-' ? input.alen - 1: input.alen); i++) {
+		for (uint8 i = 0; i < tempalen; i++) {
 			current.set(currentLen++, tempa.get(i));
 			uint8 count = 0;
-			BIGBigOrEqualComparison_input compInput;
-			BIGBigOrEqualComparison_output compOutput;
-			for(uint8 j = 0 ; j < currentLen; j++) compInput.a.set(j, current.get(j));
-			compInput.alen = currentLen;
-			for(uint8 j = 0 ; j < (input.blen == '-' ? input.blen - 1: input.blen); j++) compInput.b.set(j, tempb.get(j));
-			compInput.blen = (input.blen == '-' ? input.blen - 1: input.blen);
-			CALL(BIGBigOrEqualComparison, compInput, compOutput);
 
-			while (compOutput.result) {
+			while (1) {
+				BIGBigOrEqualComparison_input compInput;
+				BIGBigOrEqualComparison_output compOutput;
+				for(uint8 j = 0 ; j < currentLen; j++) compInput.a.set(j, current.get(j));
+				compInput.alen = currentLen;
+				for(uint8 j = 0 ; j < tempblen; j++) compInput.b.set(j, tempb.get(j));
+				compInput.blen = tempblen;
+				CALL(BIGBigOrEqualComparison, compInput, compOutput);
+
+				if(!compOutput.result) break;
+
 				BIGMinus_input MinusInput;
 				BIGMinus_output MinusOutput;
 				for(uint8 j = 0 ; j < currentLen; j++) MinusInput.a.set(j, current.get(j));
 				MinusInput.alen = currentLen;
-				for(uint8 j = 0 ; j < (input.blen == '-' ? input.blen - 1: input.blen); j++) MinusInput.b.set(j, tempb.get(j));
-				MinusInput.blen = (input.blen == '-' ? input.blen - 1: input.blen);
+				for(uint8 j = 0 ; j < tempblen; j++) MinusInput.b.set(j, tempb.get(j));
+				MinusInput.blen = tempblen;
 				
 				CALL(BIGMinus, MinusInput, MinusOutput);
-				for(uint8 j = 0 ; j < output.resultlen; j++) current.set(j, MinusOutput.result.get(j));
+				for(uint8 j = 0 ; j < MinusOutput.resultlen; j++) current.set(j, MinusOutput.result.get(j));
+				currentLen = MinusOutput.resultlen;
 				count++;
 			}
 			tempResult.set(i, count + '0');
@@ -1287,21 +1319,12 @@ private:
 		if(sign) {
 			output.result.set(0, '-');
 			output.resultlen = 1;
-			bit flag = 0;
-			for(uint8 i = 1 ; i < input.alen; i++) {
-				if(tempResult.get(i) != '0' || flag) {
-					flag = 1;
-					output.result.set(output.resultlen++, tempResult.get(i));
-				}
-			}
 		}
-		else {
-			bit flag = 0;
-			for(uint8 i = 0; i < input.alen; i++) {
-				if(tempResult.get(i) != '0' || flag) {
-					flag = 1;
-					output.result.set(output.resultlen++, tempResult.get(i));
-				}
+		bit flag = 0;
+		for(uint8 i = 0; i < tempalen; i++) {
+			if(tempResult.get(i) != '0' || flag) {
+				flag = 1;
+				output.result.set(output.resultlen++, tempResult.get(i));
 			}
 		}
 
@@ -1313,13 +1336,19 @@ private:
 	PUBLIC_PROCEDURE(BIGModulus)
 		uint8_128 tempa;
 		uint8_128 tempb;
+		uint8 tempalen = 0;
+		uint8 tempblen = 0;
 		uint8_128 tempResult;
 		bit sign = 0;
 		if(input.a.get(0) == '-') {     // when a is negative
 			sign ^= 1;
+			bit flag = 0;
 			// checking if a is number
 			for(uint8 i = 1 ; i < input.alen; i++) {
-				tempa.set(i - 1, input.a.get(i - 1));
+				if(input.a.get(i) != '0' || flag) {
+					flag = 1;
+					tempa.set(tempalen++, input.a.get(i));
+				}
 				if(input.a.get(i) >= '0' && input.a.get(i) <= '9') continue;
 
 				if (qpi.invocationReward() > 0)
@@ -1331,8 +1360,12 @@ private:
 		}
 		else {                // when positive
 			// checking if a is number
+			bit flag = 0;
 			for(uint8 i = 0; i < input.alen; i++) {
-				tempa.set(i, input.a.get(i));
+				if(input.a.get(i) != '0' || flag) {
+					flag = 1;
+					tempa.set(tempalen++, input.a.get(i));
+				}
 				if(input.a.get(i) >= '0' && input.a.get(i) <= '9') continue;
 
 				if (qpi.invocationReward() > 0)
@@ -1346,9 +1379,13 @@ private:
 		if(input.b.get(0) == '-') {     // when b is negative
 			sign ^= 1;
 			uint8 zeroCount = 0;
+			bit flag = 0;
 			// checking if b is number
 			for(uint8 i = 1 ; i < input.blen; i++) {
-				tempb.set(i - 1, input.b.get(i));
+				if(input.b.get(i) != '0' || flag) {
+					flag = 1;
+					tempb.set(tempblen++, input.b.get(i));
+				}
 				if(input.b.get(i) == '0') zeroCount++;
 				if(input.b.get(i) >= '0' && input.b.get(i) <= '9') continue;
 
@@ -1369,9 +1406,13 @@ private:
 		}
 		else {                // when positive
 			uint8 zeroCount = 0;
+			bit flag = 0;
 			// checking if b is number
 			for(uint8 i = 0; i < input.blen; i++) {
-				tempb.set(i, input.b.get(i));
+				if(input.b.get(i) != '0' || flag) {
+					flag = 1;
+					tempb.set(tempblen++, input.b.get(i));
+				}
 				if(input.b.get(i) == '0') zeroCount++;
 				if(input.b.get(i) >= '0' && input.b.get(i) <= '9') continue;
 
@@ -1399,30 +1440,33 @@ private:
 			return;
 		}
 
-
 		uint8_128 current;
 		uint8 currentLen = 0;
-		for (uint8 i = 0; i < (input.alen == '-' ? input.alen - 1: input.alen); i++) {
+		for (uint8 i = 0; i < tempalen; i++) {
 			current.set(currentLen++, tempa.get(i));
 			uint8 count = 0;
-			BIGBigOrEqualComparison_input compInput;
-			BIGBigOrEqualComparison_output compOutput;
-			for(uint8 j = 0 ; j < currentLen; j++) compInput.a.set(j, current.get(j));
-			compInput.alen = currentLen;
-			for(uint8 j = 0 ; j < (input.blen == '-' ? input.blen - 1: input.blen); j++) compInput.b.set(j, tempb.get(j));
-			compInput.blen = (input.blen == '-' ? input.blen - 1: input.blen);
-			CALL(BIGBigOrEqualComparison, compInput, compOutput);
 
-			while (compOutput.result) {
+			while (1) {
+				BIGBigOrEqualComparison_input compInput;
+				BIGBigOrEqualComparison_output compOutput;
+				for(uint8 j = 0 ; j < currentLen; j++) compInput.a.set(j, current.get(j));
+				compInput.alen = currentLen;
+				for(uint8 j = 0 ; j < tempblen; j++) compInput.b.set(j, tempb.get(j));
+				compInput.blen = tempblen;
+				CALL(BIGBigOrEqualComparison, compInput, compOutput);
+
+				if(!compOutput.result) break;
+
 				BIGMinus_input MinusInput;
 				BIGMinus_output MinusOutput;
 				for(uint8 j = 0 ; j < currentLen; j++) MinusInput.a.set(j, current.get(j));
 				MinusInput.alen = currentLen;
-				for(uint8 j = 0 ; j < (input.blen == '-' ? input.blen - 1: input.blen); j++) MinusInput.b.set(j, tempb.get(j));
-				MinusInput.blen = (input.blen == '-' ? input.blen - 1: input.blen);
+				for(uint8 j = 0 ; j < tempblen; j++) MinusInput.b.set(j, tempb.get(j));
+				MinusInput.blen = tempblen;
 				
 				CALL(BIGMinus, MinusInput, MinusOutput);
-				for(uint8 j = 0 ; j < output.resultlen; j++) current.set(j, MinusOutput.result.get(j));
+				for(uint8 j = 0 ; j < MinusOutput.resultlen; j++) current.set(j, MinusOutput.result.get(j));
+				currentLen = MinusOutput.resultlen;
 				count++;
 			}
 			tempResult.set(i, count + '0');
@@ -1430,24 +1474,11 @@ private:
 
 		output.resultlen = 0;
 
-		if(sign) {
-			output.result.set(0, '-');
-			output.resultlen = 1;
-			bit flag = 0;
-			for(uint8 i = 0 ; i < currentLen; i++) {
-				if(current.get(i) != '0' || flag) {
-					flag = 1;
-					output.result.set(output.resultlen++, current.get(i));
-				}
-			}
-		}
-		else {
-			bit flag = 0;
-			for(uint8 i = 0; i < currentLen; i++) {
-				if(current.get(i) != '0' || flag) {
-					flag = 1;
-					output.result.set(output.resultlen++, current.get(i));
-				}
+		bit flag = 0;
+		for(uint8 i = 0; i < currentLen; i++) {
+			if(current.get(i) != '0' || flag) {
+				flag = 1;
+				output.result.set(output.resultlen++, current.get(i));
 			}
 		}
 
@@ -1494,18 +1525,26 @@ private:
 			if(input.b.get(i) == '0') tlenb--;
 			else break;
 		}
-		if(tlena > tlenb) output.result = 0;
-		else if(tlena < tlenb) output.result = 1;
+		if(tlena > tlenb) {
+			output.result = 1;
+			state.BIGTestComparisonResult = output.result; 
+			return;
+		}
+		else if(tlena < tlenb) {
+			output.result = 0;
+			state.BIGTestComparisonResult = output.result;
+			return;
+		}
 		else {
 			for(uint8 i = 0 ; i < tlena; i++) {
 				if(input.a.get(i) > input.b.get(i)) {
-					output.result = 0; return;
+					output.result = 1; state.BIGTestComparisonResult = output.result; return;
 				}
 				if(input.a.get(i) < input.b.get(i)) {
-					output.result = 1; return;
+					output.result = 0; state.BIGTestComparisonResult = output.result; return;
 				}
 			}
-			output.result = 0;
+			output.result = 1;
 		}
 
 		state.BIGTestComparisonResult = output.result;
@@ -1551,18 +1590,30 @@ private:
 			if(input.b.get(i) == '0') tlenb--;
 			else break;
 		}
-		if(tlena > tlenb) output.result = 1;
-		else if(tlena < tlenb) output.result = 0;
+		if(tlena > tlenb) {
+			output.result = 0;
+			state.BIGTestComparisonResult = output.result;
+			return ;
+		}
+		else if(tlena < tlenb) {
+			output.result = 1;
+			state.BIGTestComparisonResult = output.result;
+			return ;
+		}
 		else {
 			for(uint8 i = 0 ; i < tlena; i++) {
 				if(input.a.get(i) > input.b.get(i)) {
-					output.result = 1; return;
+					output.result = 0;
+					state.BIGTestComparisonResult = output.result;
+					return;
 				}
 				if(input.a.get(i) < input.b.get(i)) {
-					output.result = 0; return;
+					output.result = 1; 
+					state.BIGTestComparisonResult = output.result;
+					return;
 				}
 			}
-			output.result = 0;
+			output.result = 1;
 		}
 		state.BIGTestComparisonResult = output.result;
 	_
@@ -1607,18 +1658,30 @@ private:
 			if(input.b.get(i) == '0') tlenb--;
 			else break;
 		}
-		if(tlena > tlenb) output.result = 0;
-		else if(tlena < tlenb) output.result = 1;
+		if(tlena > tlenb) {
+			output.result = 1;
+			state.BIGTestComparisonResult = output.result;
+			return ;
+		}
+		else if(tlena < tlenb) {
+			output.result = 0;
+			state.BIGTestComparisonResult = output.result;
+			return ;
+		}
 		else {
 			for(uint8 i = 0 ; i < tlena; i++) {
 				if(input.a.get(i) > input.b.get(i)) {
-					output.result = 0; return;
+					output.result = 1;
+					state.BIGTestComparisonResult = output.result; 
+					return;
 				}
 				if(input.a.get(i) < input.b.get(i)) {
-					output.result = 1; return;
+					output.result = 0;
+					state.BIGTestComparisonResult = output.result;
+					return;
 				}
 			}
-			output.result = 1;
+			output.result = 0;
 		}
 
 		state.BIGTestComparisonResult = output.result;
@@ -1664,18 +1727,30 @@ private:
 			if(input.b.get(i) == '0') tlenb--;
 			else break;
 		}
-		if(tlena > tlenb) output.result = 1;
-		else if(tlena < tlenb) output.result = 0;
+		if(tlena > tlenb) {
+			output.result = 0;
+			state.BIGTestComparisonResult = output.result;
+			return ;
+		}
+		else if(tlena < tlenb) {
+			output.result = 1;
+			state.BIGTestComparisonResult = output.result;
+			return ;
+		}
 		else {
 			for(uint8 i = 0 ; i < tlena; i++) {
 				if(input.a.get(i) > input.b.get(i)) {
-					output.result = 1; return;
+					output.result = 0; 
+					state.BIGTestComparisonResult = output.result;
+					return;
 				}
 				if(input.a.get(i) < input.b.get(i)) {
-					output.result = 0; return;
+					output.result = 1; 
+					state.BIGTestComparisonResult = output.result;
+					return;
 				}
 			}
-			output.result = 1;
+			output.result = 0;
 		}
 
 		state.BIGTestComparisonResult = output.result;
