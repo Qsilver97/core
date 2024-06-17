@@ -6,7 +6,13 @@ using namespace QPI;
 #define QPOOL_FEE_ISSUE_ASSET 1000000000LL
 #define QPOOL_TOKEN_TRANSER_FEE 1000LL // Amount of qus
 #define QPOOL_ENABLE_TOKEN_FEE 100000000LL
-#define QPOOL_MULTIPRECISION_FEE_UNIT 1
+#define QPOOL_MULTIPRECISION_CONVERT_FEE 1
+#define QPOOL_MULTIPRECISION_PLUS_FEE 2
+#define QPOOL_MULTIPRECISION_MINUS_FEE 2
+#define QPOOL_MULTIPRECISION_MULTIPLY_FEE 4
+#define QPOOL_MULTIPRECISION_DIVIDE_FEE 8
+#define QPOOL_MULTIPRECISION_MODULUS_FEE 8
+#define QPOOL_MULTIPRECISION_COMPARISON_FEE 1
 #define QPOOL_MAX_TOKEN 65536
 #define QPOOL_QWALLET_TOKEN 23720092042876753ULL
 #define QPOOL_CONTRACTID _mm256_set_epi32(0, 0, 0, 0, 0, 0, 0, 7)
@@ -61,14 +67,14 @@ public:
 		uint8_128 result;
 	};
 
-	struct BIGMultiple_input {
+	struct BIGMultiply_input {
 		uint8 alen;
 		uint8 blen;
 		uint8_128 a;
 		uint8_128 b;
 	};
 
-	struct BIGMultiple_output {
+	struct BIGMultiply_output {
 		uint8 resultlen;
 		uint8_128 result;
 	};
@@ -651,15 +657,15 @@ private:
 		
 		CALL(BIGNumberToString, BigweightOfQuInput, BigweightOfQuOutput);
 
-		BIGMultiple_input liquidityOfQUMultipleWeightOfToken1_input;
-		BIGMultiple_output liquidityOfQUMultipleWeightOfToken1_output;
+		BIGMultiply_input liquidityOfQUMultipleWeightOfToken1_input;
+		BIGMultiply_output liquidityOfQUMultipleWeightOfToken1_output;
 
 		for(uint8 i = 0 ; i < BigliquidityOfQUOutput.len; i++) liquidityOfQUMultipleWeightOfToken1_input.a.set(i, BigliquidityOfQUOutput.result.get(i));
 		liquidityOfQUMultipleWeightOfToken1_input.alen = BigliquidityOfQUOutput.len;
 		for(uint8 i = 0 ; i < BigweightOfToken1Output.len; i++) liquidityOfQUMultipleWeightOfToken1_input.b.set(i, BigweightOfToken1Output.result.get(i));
 		liquidityOfQUMultipleWeightOfToken1_input.blen = BigweightOfToken1Output.len;
 
-		CALL(BIGMultiple, liquidityOfQUMultipleWeightOfToken1_input, liquidityOfQUMultipleWeightOfToken1_output);
+		CALL(BIGMultiply, liquidityOfQUMultipleWeightOfToken1_input, liquidityOfQUMultipleWeightOfToken1_output);
 
 		BIGDiv_input liquidityOfQUMultipleWeightOfToken1DivideliquidityOfToken1_input;
 		BIGDiv_output liquidityOfQUMultipleWeightOfToken1DivideliquidityOfToken1_output;
@@ -682,15 +688,15 @@ private:
 		CALL(BIGDiv, ValueOfToken1ByQu_input, ValueOfToken1ByQu_output);
 
 
-		BIGMultiple_input liquidityOfQUMultipleWeightOfToken2_input;
-		BIGMultiple_output liquidityOfQUMultipleWeightOfToken2_output;
+		BIGMultiply_input liquidityOfQUMultipleWeightOfToken2_input;
+		BIGMultiply_output liquidityOfQUMultipleWeightOfToken2_output;
 
 		for(uint8 i = 0 ; i < BigliquidityOfQUOutput.len; i++) liquidityOfQUMultipleWeightOfToken2_input.a.set(i, BigliquidityOfQUOutput.result.get(i));
 		liquidityOfQUMultipleWeightOfToken2_input.alen = BigliquidityOfQUOutput.len;
 		for(uint8 i = 0 ; i < BigweightOfToken2Output.len; i++) liquidityOfQUMultipleWeightOfToken2_input.b.set(i, BigweightOfToken2Output.result.get(i));
 		liquidityOfQUMultipleWeightOfToken2_input.blen = BigweightOfToken2Output.len;
 
-		CALL(BIGMultiple, liquidityOfQUMultipleWeightOfToken2_input, liquidityOfQUMultipleWeightOfToken2_output);
+		CALL(BIGMultiply, liquidityOfQUMultipleWeightOfToken2_input, liquidityOfQUMultipleWeightOfToken2_output);
 
 		BIGDiv_input liquidityOfQUMultipleWeightOfToken2DivideliquidityOfToken2_input;
 		BIGDiv_output liquidityOfQUMultipleWeightOfToken2DivideliquidityOfToken2_output;
@@ -739,7 +745,15 @@ private:
 		//
 		/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-		if(qpi.invocationReward() < NumberValueOfToken1ByQu_output.result / 100) {    // lack of swap fee
+		if(qpi.invocationReward() < NumberValueOfToken1ByQu_output.result / 100) {    // lack of maximum fee for swapping
+			if (qpi.invocationReward() > 0)
+			{
+				qpi.transfer(qpi.invocator(), qpi.invocationReward());
+			}
+			return;
+		}
+
+		if(NumberValueOfToken1ByQu_output.result / 100 < 71) {			///   lack of minimum fee for swapping
 			if (qpi.invocationReward() > 0)
 			{
 				qpi.transfer(qpi.invocator(), qpi.invocationReward());
@@ -776,15 +790,15 @@ private:
 
 		CALL(BIGNumberToString, AmountOfToken1_input, AmountOfToken1_output);
 
-		BIGMultiple_input ValueOfToken1Provided_input;
-		BIGMultiple_output ValueOfToken1Provided_output;
+		BIGMultiply_input ValueOfToken1Provided_input;
+		BIGMultiply_output ValueOfToken1Provided_output;
 
 		for(uint8 i = 0 ; i < ValueOfToken1ByQu_output.resultlen; i++) ValueOfToken1Provided_input.a.set(i, ValueOfToken1ByQu_output.result.get(i));
 		ValueOfToken1Provided_input.alen = ValueOfToken1ByQu_output.resultlen;
 		for(uint8 i = 0 ; i < AmountOfToken1_output.len; i++) ValueOfToken1Provided_input.b.set(i, AmountOfToken1_output.result.get(i));
 		ValueOfToken1Provided_input.blen = AmountOfToken1_output.len;
 
-		CALL(BIGMultiple, ValueOfToken1Provided_input, ValueOfToken1Provided_output);
+		CALL(BIGMultiply, ValueOfToken1Provided_input, ValueOfToken1Provided_output);
 
 		BIGModulus_input AmountOfRefundQu_input;
 		BIGModulus_output AmountOfRefundQu_output;
@@ -841,7 +855,7 @@ private:
 
 	//cast int to uint8
 	PUBLIC_PROCEDURE(BIGNumberToString)
-		if(qpi.invocationReward() < QPOOL_MULTIPRECISION_FEE_UNIT) return;
+		if(qpi.invocationReward() < QPOOL_MULTIPRECISION_CONVERT_FEE) return;
 		sint64 a = input.a;
 		uint64 P = 1;
 		output.len = 1;
@@ -918,7 +932,7 @@ private:
 				return;
 			}
 		}
-		if(qpi.invocationReward() < QPOOL_MULTIPRECISION_FEE_UNIT) return;
+		if(qpi.invocationReward() < QPOOL_MULTIPRECISION_CONVERT_FEE) return;
 		
 		if(input.a.get(0) == 45) output.result = (input.a.get(1) - '0') * (-1);
 		else output.result = input.a.get(0) - '0';
@@ -952,7 +966,7 @@ private:
 			return;
 		}
 
-		if(qpi.invocationReward() < QPOOL_MULTIPRECISION_FEE_UNIT * 2) {
+		if(qpi.invocationReward() < QPOOL_MULTIPRECISION_PLUS_FEE) {
 			if (qpi.invocationReward() > 0)
 			{
 				qpi.transfer(qpi.invocator(), qpi.invocationReward());
@@ -1020,7 +1034,7 @@ private:
 			return;
 		}
 
-		if(qpi.invocationReward() < QPOOL_MULTIPRECISION_FEE_UNIT * 2) {
+		if(qpi.invocationReward() < QPOOL_MULTIPRECISION_MINUS_FEE) {
 			if (qpi.invocationReward() > 0)
 			{
 				qpi.transfer(qpi.invocator(), qpi.invocationReward());
@@ -1070,7 +1084,7 @@ private:
 	_
 
 	// Multiple operator
-	PUBLIC_PROCEDURE(BIGMultiple)
+	PUBLIC_PROCEDURE(BIGMultiply)
 		uint8_128 tempa;
 		uint8_128 tempb;
 		uint8_128 tempResult;
@@ -1128,7 +1142,7 @@ private:
 			}
 		}
 
-		if(qpi.invocationReward() < QPOOL_MULTIPRECISION_FEE_UNIT * 4) {
+		if(qpi.invocationReward() < QPOOL_MULTIPRECISION_MULTIPLY_FEE) {
 			if (qpi.invocationReward() > 0)
 			{
 				qpi.transfer(qpi.invocator(), qpi.invocationReward());
@@ -1273,7 +1287,7 @@ private:
 			}
 		}
 
-		if(qpi.invocationReward() < QPOOL_MULTIPRECISION_FEE_UNIT * 4) {
+		if(qpi.invocationReward() < QPOOL_MULTIPRECISION_DIVIDE_FEE) {
 			if (qpi.invocationReward() > 0)
 			{
 				qpi.transfer(qpi.invocator(), qpi.invocationReward());
@@ -1432,7 +1446,7 @@ private:
 			}
 		}
 
-		if(qpi.invocationReward() < QPOOL_MULTIPRECISION_FEE_UNIT * 4) {
+		if(qpi.invocationReward() < QPOOL_MULTIPRECISION_MODULUS_FEE) {
 			if (qpi.invocationReward() > 0)
 			{
 				qpi.transfer(qpi.invocator(), qpi.invocationReward());
@@ -1508,7 +1522,7 @@ private:
 			return;
 		}
 
-		if(qpi.invocationReward() < QPOOL_MULTIPRECISION_FEE_UNIT) {
+		if(qpi.invocationReward() < QPOOL_MULTIPRECISION_COMPARISON_FEE) {
 			if (qpi.invocationReward() > 0)
 			{
 				qpi.transfer(qpi.invocator(), qpi.invocationReward());
@@ -1572,7 +1586,7 @@ private:
 			return;
 		}
 
-		if(qpi.invocationReward() < QPOOL_MULTIPRECISION_FEE_UNIT) {
+		if(qpi.invocationReward() < QPOOL_MULTIPRECISION_COMPARISON_FEE) {
 			if (qpi.invocationReward() > 0)
 			{
 				qpi.transfer(qpi.invocator(), qpi.invocationReward());
@@ -1640,7 +1654,7 @@ private:
 			return;
 		}
 
-		if(qpi.invocationReward() < QPOOL_MULTIPRECISION_FEE_UNIT) {
+		if(qpi.invocationReward() < QPOOL_MULTIPRECISION_COMPARISON_FEE) {
 			if (qpi.invocationReward() > 0)
 			{
 				qpi.transfer(qpi.invocator(), qpi.invocationReward());
@@ -1709,7 +1723,7 @@ private:
 			return;
 		}
 
-		if(qpi.invocationReward() < QPOOL_MULTIPRECISION_FEE_UNIT) {
+		if(qpi.invocationReward() < QPOOL_MULTIPRECISION_COMPARISON_FEE) {
 			if (qpi.invocationReward() > 0)
 			{
 				qpi.transfer(qpi.invocator(), qpi.invocationReward());
@@ -1778,7 +1792,7 @@ private:
 		REGISTER_USER_PROCEDURE(BIGStringToNumber, 11);
 		REGISTER_USER_PROCEDURE(BIGPlus, 12);
 		REGISTER_USER_PROCEDURE(BIGMinus, 13);
-		REGISTER_USER_PROCEDURE(BIGMultiple, 14);
+		REGISTER_USER_PROCEDURE(BIGMultiply, 14);
 		REGISTER_USER_PROCEDURE(BIGDiv, 15);
 		REGISTER_USER_PROCEDURE(BIGModulus, 16);
 		REGISTER_USER_PROCEDURE(BIGBigOrEqualComparison, 17);
