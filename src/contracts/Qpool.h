@@ -6,6 +6,8 @@ using namespace QPI;
 #define QPOOL_FEE_ISSUE_ASSET 1000000000LL
 #define QPOOL_TOKEN_TRANSER_FEE 1000LL // Amount of qus
 #define QPOOL_ENABLE_TOKEN_FEE 100000000LL
+#define QPOOL_EXPENSIVE_TOKEN_DEPOSIT_FEE 10000LL
+#define QPOOL_EXPENSIVE_TOKEN_WITHDRAW_FEE 10000LL
 #define QPOOL_MULTIPRECISION_CONVERT_FEE 1
 #define QPOOL_MULTIPRECISION_PLUS_FEE 2
 #define QPOOL_MULTIPRECISION_MINUS_FEE 2
@@ -158,6 +160,11 @@ public:
 		uint64 initialAmount3;
 		uint64 initialAmount4;
 
+		uint32 initialAmountForMicrotoken1;
+		uint32 initialAmountForMicrotoken2;
+		uint32 initialAmountForMicrotoken3;
+		uint32 initialAmountForMicrotoken4;
+
 		uint16 IndexOfToken1;
 		uint16 IndexOfToken2;
 		uint16 IndexOfToken3;
@@ -170,6 +177,11 @@ public:
 		uint8 Weight2;
 		uint8 Weight3;
 		uint8 Weight4;
+
+		bit TypeOfToken1;						// General token or Expensive token
+		bit TypeOfToken2;
+		bit TypeOfToken3;
+		bit TypeOfToken4;
 	};
 	struct CreateLiquidityPool_output
 	{
@@ -193,7 +205,11 @@ public:
 		uint64 liquidity3;
 		uint64 liquidity4;
 		uint64 totalAmountOfQPT;
-		uint64 totalSupplyByQU;
+
+		uint32 liquidityForMicrotoken1;
+		uint32 liquidityForMicrotoken2;
+		uint32 liquidityForMicrotoken3;
+		uint32 liquidityForMicrotoken4;
 
 		uint16 IndexOfToken1;
 		uint16 IndexOfToken2;
@@ -207,6 +223,11 @@ public:
 		uint8 Weight2;
 		uint8 Weight3;
 		uint8 Weight4;
+
+		bit TypeOfToken1;
+		bit TypeOfToken2;
+		bit TypeOfToken3;
+		bit TypeOfToken4;
 	};
 
 	struct IssueAsset_input
@@ -222,10 +243,42 @@ public:
 		sint64 issuedNumberOfShares;
 	};
 
+	struct DepositExpensivetoken_input
+	{
+		uint64 AmountOfToken;
+		uint16 IndexOfToken;
+	};
+	
+	struct DepositExpensivetoken_output 
+	{
+	};
+
+	struct WithdrawExpensivetoken_input
+	{
+		uint64 AmountOfToken;
+		uint16 IndexOfToken;
+	};
+	struct WithdrawExpensivetoken_output
+	{
+		
+	};
+	struct GetAmountOfExpensivetokenUserDeposited_input
+	{
+		id user;
+		uint32 IndexOfToken;
+	};
+	struct GetAmountOfExpensivetokenUserDeposited_output
+	{
+		uint64 AmountOfExpensiveTokenUserProvided;		// Amount of Expensive Token User provides in the Qpool
+		uint64 TokenNameOfExpensiveTokenUserProvided; 	// Token name of Expensive Token that User provides in the Qpool
+		uint32 AmountOfMicrotokenOfUser;				// Amount of Microtoken that user has in the Qpool.            less than 1M
+	};
 	struct EnableToken_input
 	{
-		uint64 assetName;
 		id issuer;
+		uint64 assetName;
+		uint16 contractIndex;
+		bit TypeOfToken;                      // Expensive token or general token
 	};
 
 	struct EnableToken_output
@@ -239,17 +292,20 @@ public:
 
 	struct GetNumberOfEnableToken_output
 	{
-		uint16 NumberOfEnableToken;
+		uint16 NumberOfEnabledGeneralToken;
+		uint16 NumberOfEnabledExpensiveToken;
 	};
 
 	struct GetEnableToken_input
 	{
 		uint32 NumberOfToken;
+		bit TypeOfToken;           //General or Expensive token
 	};
 
 	struct GetEnableToken_output
 	{
 		uint64 assetName;
+		uint16 contractIndex;
 		id issuer;
 	};
 
@@ -260,6 +316,9 @@ public:
 		uint16 IndexOfToken2;
 
 		uint16 Poolnum;
+
+		bit TypeOfToken1;
+		bit TypeOfToken2;
 	};
 
 	struct Swap_output {
@@ -287,8 +346,6 @@ public:
 	};
 
 private:
-	uint32 _NumberOfPool;		
-	uint16 _NumberOfEnableToken;	   // Number of Pool
 	struct _PoolInfo
 	{
 		uint64 NameOfLPToken; // Name of LP token
@@ -301,7 +358,11 @@ private:
 		uint64 liquidity3;
 		uint64 liquidity4;
 		uint64 TotalAmountOfQPT;
-		uint64 totalSupply;
+
+		uint32 liquidityForMicrotoken1;
+		uint32 liquidityForMicrotoken2;
+		uint32 liquidityForMicrotoken3;
+		uint32 liquidityForMicrotoken4;
 
 		uint16 IndexOfToken1;
 		uint16 IndexOfToken2;
@@ -314,26 +375,55 @@ private:
 		uint8 Weight2;
 		uint8 Weight3;
 		uint8 Weight4;
-
+ 
 		uint8 WeightOfQWALLET;
+
+		bit TypeOfToken1;
+		bit TypeOfToken2;
+		bit TypeOfToken3;
+		bit TypeOfToken4;
 	};
+
 	array<_PoolInfo, QPOOL_MAX_NUMBER_OF_POOL> _pools;
+
+	struct _ExpensiveTokenState {
+		uint64 AmountOfExpensiveTokenUserProvided;		// Amount of Expensive Token nth User provides in the Qpool
+		uint64 TokenNameOfExpensiveTokenUserProvided; 	// Token name of Expensive Token nth User provides in the Qpool
+		uint32 AmountOfMicrotokenOfUser;				// Amount of Microtoken nth User has in the Qpool.            less than 1M
+		id ExpensiveTokenProviderID;	   				// The id of nth Expensive Token Provider in Qpool
+	};
+
+	array<_ExpensiveTokenState, 16777216> _ExpensiveTokenInforOfUser;
+
 	sint64 BIGTest;
-	uint64_16777216 _QPTAmountOfUser; // Amount of LP token of nth user in Qpool
-	uint32 _NumberOfTotalUser;
-	id_16777216 _UserID;	   // The id of nth user in Qpool
-	uint16_16777216 _PoolNumberOfUser;     // The number of pool user provided
+	uint64_16777216 _QPTAmountOfUser; 						// Amount of LP token of nth user in Qpool
+	uint32 _NumberOfUserProvidedExpensiveToken;			// Maximum Number of Users who provided Expensive token
+	uint32 _NumberOfTotalUser;		  						// Maximum Number of Stakers
+	uint32 _NumberOfPool;			   						// Number of Pool
+	uint16 _NumberOfEnabledGeneralToken;
+	uint16 _NumberOfEnabledExpensiveToken;
+	id_16777216 _UserID;	   								// The id of nth user in Qpool
+	uint16_16777216 _PoolNumberOfUser;     					// The number of pool user provided
 	uint8_128 BIGStringNumber;
 	uint8 BIGStringNumberLen;
 	bit BIGTestComparisonResult;
 
-	struct _tokenInfor
+	struct _GeneralTokenInfor
 	{
 		uint64 assetName;
+		uint16 contractIndex;
 		id issuer;
 	};
 
-	array<_tokenInfor, QPOOL_MAX_TOKEN> _TokenList;
+	array<_GeneralTokenInfor, QPOOL_MAX_TOKEN> _GeneralTokenList;
+
+	struct _ExpensiveTokenInfor {
+		uint64 assetName;
+		uint16 contractIndex;
+		id issuer;
+	};
+
+	array<_ExpensiveTokenInfor, QPOOL_MAX_TOKEN> _ExpensiveTokenList;
 
 	PUBLIC_PROCEDURE(EnableToken)
 		if (qpi.invocationReward() < QPOOL_ENABLE_TOKEN_FEE)
@@ -344,36 +434,62 @@ private:
 			}
 			return;
 		}
-		_tokenInfor newToken;
-		newToken.assetName = input.assetName;
-		newToken.issuer = input.issuer;
-		state._TokenList.set(state._NumberOfEnableToken, newToken);
-		output.TokenID = state._NumberOfEnableToken;
-		state._NumberOfEnableToken++;
+		if(input.TypeOfToken) {                                  // if token is Expensive token
+			_ExpensiveTokenInfor newToken;
+			newToken.assetName = input.assetName;
+			newToken.contractIndex = input.contractIndex;
+			newToken.issuer = input.issuer;
+			state._ExpensiveTokenList.set(state._NumberOfEnabledExpensiveToken, newToken);
+			output.TokenID = state._NumberOfEnabledExpensiveToken;
+			state._NumberOfEnabledExpensiveToken++;
+		}
+		else {                                                    // if token is general token
+			_GeneralTokenInfor newToken;
+			newToken.assetName = input.assetName;
+			newToken.contractIndex = input.contractIndex;
+			newToken.issuer = input.issuer;
+			state._GeneralTokenList.set(state._NumberOfEnabledGeneralToken, newToken);
+			output.TokenID = state._NumberOfEnabledGeneralToken;
+			state._NumberOfEnabledGeneralToken++;
+		}
 	_
 
 	PUBLIC_FUNCTION(GetNumberOfEnableToken)
-		output.NumberOfEnableToken = state._NumberOfEnableToken;
+		output.NumberOfEnabledGeneralToken = state._NumberOfEnabledGeneralToken;
+		output.NumberOfEnabledExpensiveToken = state._NumberOfEnabledExpensiveToken;
 	_
 
 	PUBLIC_FUNCTION(GetEnableToken) 
-		if (input.NumberOfToken >= state._NumberOfEnableToken) return;
-		_tokenInfor token = state._TokenList.get(input.NumberOfToken);
-		output.assetName = token.assetName;
-		output.issuer = token.issuer;
+		if (input.TypeOfToken) {
+			if(input.NumberOfToken >= state._NumberOfEnabledExpensiveToken) return;
+			_ExpensiveTokenInfor token = state._ExpensiveTokenList.get(input.NumberOfToken);
+			output.assetName = token.assetName;
+			output.contractIndex = token.contractIndex;
+			output.issuer = token.issuer;
+		}
+		else {
+			if(input.NumberOfToken >= state._NumberOfEnabledGeneralToken) return;
+			_GeneralTokenInfor token = state._GeneralTokenList.get(input.NumberOfToken);
+			output.assetName = token.assetName;
+			output.contractIndex = token.contractIndex;
+			output.issuer = token.issuer;
+		}
 	_
 
 	PUBLIC_FUNCTION(GetValueOfToken)
 		_PoolInfo pool = state._pools.get(input.Poolnum);
-		_tokenInfor token = state._TokenList.get(input.IndexOfToken);
+		_GeneralTokenInfor token = state._GeneralTokenList.get(input.IndexOfToken);
 
 		uint64 liquidityOfToken;
+		uint32 liquidityOfMicrotoken;
 		uint8 weightOfToken;
+		bit typeOfToken = 0;
 
-		if(input.IndexOfToken == pool.IndexOfToken1) {liquidityOfToken = pool.liquidity1; weightOfToken = pool.Weight1; }
-		if(input.IndexOfToken == pool.IndexOfToken2) {liquidityOfToken = pool.liquidity2; weightOfToken = pool.Weight2; }
-		if(input.IndexOfToken == pool.IndexOfToken3) {liquidityOfToken = pool.liquidity3; weightOfToken = pool.Weight3; }
-		if(input.IndexOfToken == pool.IndexOfToken4) {liquidityOfToken = pool.liquidity4; weightOfToken = pool.Weight4; }
+		if(input.IndexOfToken == pool.IndexOfToken1) {liquidityOfToken = pool.liquidity1; liquidityOfMicrotoken = pool.liquidityForMicrotoken1; weightOfToken = pool.Weight1; typeOfToken = pool.TypeOfToken1;}
+		if(input.IndexOfToken == pool.IndexOfToken2) {liquidityOfToken = pool.liquidity2; liquidityOfMicrotoken = pool.liquidityForMicrotoken2; weightOfToken = pool.Weight2; typeOfToken = pool.TypeOfToken2;}
+		if(input.IndexOfToken == pool.IndexOfToken3) {liquidityOfToken = pool.liquidity3; liquidityOfMicrotoken = pool.liquidityForMicrotoken3; weightOfToken = pool.Weight3; typeOfToken = pool.TypeOfToken3;}
+		if(input.IndexOfToken == pool.IndexOfToken4) {liquidityOfToken = pool.liquidity4; liquidityOfMicrotoken = pool.liquidityForMicrotoken4; weightOfToken = pool.Weight4; typeOfToken = pool.TypeOfToken4;}
+		if(input.IndexOfToken == 0) {liquidityOfToken = pool.liquidityOfQWALLET; weightOfToken = pool.WeightOfQWALLET;}
 
 		uint8 weightOfQu = 100 - pool.WeightOfQWALLET;
 		if(pool.NumberOfToken > 2) weightOfQu -= pool.Weight1;
@@ -381,7 +497,91 @@ private:
 		if(pool.NumberOfToken > 4) weightOfQu -= pool.Weight3;
 		if(pool.NumberOfToken > 5) weightOfQu -= pool.Weight4;
 
+		if(typeOfToken) liquidityOfToken = liquidityOfToken * 1000000 + liquidityOfMicrotoken;     // if token is expensive token
 		output.ValueOfToken = pool.liquidityOfQU * weightOfToken / liquidityOfToken / weightOfQu;   // Amount of qu per 1 token in current pool
+	_
+
+	PUBLIC_PROCEDURE(DepositExpensivetoken)
+		_ExpensiveTokenInfor Token = state._ExpensiveTokenList.get(input.IndexOfToken);
+
+		if(qpi.invocationReward() < QPOOL_EXPENSIVE_TOKEN_DEPOSIT_FEE || qpi.numberOfPossessedShares(Token.assetName , Token.issuer, qpi.invocator(), qpi.invocator(), Token.contractIndex, Token.contractIndex) < input.AmountOfToken) {
+			if (qpi.invocationReward() > 0)
+			{
+				qpi.transfer(qpi.invocator(), qpi.invocationReward());
+			}
+			return;
+		}
+		if (qpi.invocationReward() > QPOOL_EXPENSIVE_TOKEN_DEPOSIT_FEE)
+		{
+			qpi.transfer(qpi.invocator(), qpi.invocationReward() - QPOOL_EXPENSIVE_TOKEN_DEPOSIT_FEE);
+		}
+		uint32 properIndex = 0;
+		for(; properIndex < state._NumberOfUserProvidedExpensiveToken; properIndex++) if(!state._ExpensiveTokenInforOfUser.get(properIndex).AmountOfExpensiveTokenUserProvided && !state._ExpensiveTokenInforOfUser.get(properIndex).AmountOfMicrotokenOfUser) break;        ////   vacant position to allocate
+		for(uint32 i = 0 ; i < state._NumberOfUserProvidedExpensiveToken; i++) if(state._ExpensiveTokenInforOfUser.get(i).ExpensiveTokenProviderID == qpi.invocator() && state._ExpensiveTokenInforOfUser.get(i).TokenNameOfExpensiveTokenUserProvided == Token.assetName) {  ///// position that already allocated
+			properIndex = i; break;
+		}
+		_ExpensiveTokenState InforOfUser;
+
+		InforOfUser.AmountOfExpensiveTokenUserProvided = input.AmountOfToken;
+		InforOfUser.AmountOfMicrotokenOfUser = 0;
+		InforOfUser.ExpensiveTokenProviderID = qpi.invocator();
+		InforOfUser.TokenNameOfExpensiveTokenUserProvided = Token.assetName;
+
+		state._ExpensiveTokenInforOfUser.set(properIndex, InforOfUser);
+		
+		if(properIndex == state._NumberOfUserProvidedExpensiveToken) state._NumberOfUserProvidedExpensiveToken++;      /// state._NumberOfUserProvidedExpensiveToken will not increase as long as there is anyone who the amount of Expensive token is zero. exactly the index of new Expensive token depositer would be first zero Expensive token holder's index.
+		qpi.transferShareOwnershipAndPossession(Token.assetName, Token.issuer, qpi.invocator(), qpi.invocator(), input.AmountOfToken, QPOOL_CONTRACTID);
+	_
+
+	PUBLIC_PROCEDURE(WithdrawExpensivetoken)
+		_ExpensiveTokenInfor Token = state._ExpensiveTokenList.get(input.IndexOfToken);
+		if(qpi.invocationReward() < QPOOL_EXPENSIVE_TOKEN_WITHDRAW_FEE) {
+			if (qpi.invocationReward() > 0)
+			{
+				qpi.transfer(qpi.invocator(), qpi.invocationReward());
+			}
+			return;
+		}
+
+		uint32 IndexOfRegisteredExpensiveToken;
+		for(uint32 i = 0 ; i < state._NumberOfUserProvidedExpensiveToken; i++) if(state._ExpensiveTokenInforOfUser.get(i).ExpensiveTokenProviderID == qpi.invocator() ) {
+			if(Token.assetName == state._ExpensiveTokenInforOfUser.get(i).TokenNameOfExpensiveTokenUserProvided) IndexOfRegisteredExpensiveToken = i; break;
+		}
+
+		if(state._ExpensiveTokenInforOfUser.get(IndexOfRegisteredExpensiveToken).AmountOfExpensiveTokenUserProvided < input.AmountOfToken) {
+			if (qpi.invocationReward() > 0)
+				{
+					qpi.transfer(qpi.invocator(), qpi.invocationReward());
+				}
+			return;
+		}
+
+		if (qpi.invocationReward() > QPOOL_EXPENSIVE_TOKEN_WITHDRAW_FEE)
+		{
+			qpi.transfer(qpi.invocator(), qpi.invocationReward() - QPOOL_EXPENSIVE_TOKEN_WITHDRAW_FEE);
+		}
+
+		_ExpensiveTokenState UserInfor;
+		UserInfor.AmountOfExpensiveTokenUserProvided = state._ExpensiveTokenInforOfUser.get(IndexOfRegisteredExpensiveToken).AmountOfExpensiveTokenUserProvided - input.AmountOfToken;
+		UserInfor.AmountOfMicrotokenOfUser = state._ExpensiveTokenInforOfUser.get(IndexOfRegisteredExpensiveToken).AmountOfMicrotokenOfUser;
+		UserInfor.ExpensiveTokenProviderID = state._ExpensiveTokenInforOfUser.get(IndexOfRegisteredExpensiveToken).ExpensiveTokenProviderID;
+		UserInfor.TokenNameOfExpensiveTokenUserProvided = state._ExpensiveTokenInforOfUser.get(IndexOfRegisteredExpensiveToken).TokenNameOfExpensiveTokenUserProvided;
+
+		state._ExpensiveTokenInforOfUser.set(IndexOfRegisteredExpensiveToken, UserInfor);		
+		qpi.transferShareOwnershipAndPossession(Token.assetName, Token.issuer, QPOOL_CONTRACTID, QPOOL_CONTRACTID, input.AmountOfToken, qpi.invocator());
+	_
+
+	PUBLIC_FUNCTION(GetAmountOfExpensivetokenUserDeposited)
+		if(input.IndexOfToken >= state._NumberOfEnabledExpensiveToken) return;
+
+		_ExpensiveTokenInfor Token = state._ExpensiveTokenList.get(input.IndexOfToken);
+		for(uint32 i = 0 ; i < state._NumberOfUserProvidedExpensiveToken; i++) {
+			if(state._ExpensiveTokenInforOfUser.get(i).ExpensiveTokenProviderID == input.user && Token.assetName == state._ExpensiveTokenInforOfUser.get(i).TokenNameOfExpensiveTokenUserProvided) {
+				output.AmountOfExpensiveTokenUserProvided = state._ExpensiveTokenInforOfUser.get(i).AmountOfExpensiveTokenUserProvided;
+				output.AmountOfMicrotokenOfUser = state._ExpensiveTokenInforOfUser.get(i).AmountOfMicrotokenOfUser;
+				output.TokenNameOfExpensiveTokenUserProvided = state._ExpensiveTokenInforOfUser.get(i).TokenNameOfExpensiveTokenUserProvided;
+			}
+		}
 	_
 
 	PUBLIC_PROCEDURE(CreateLiquidityPool) 
@@ -407,6 +607,7 @@ private:
 		if(input.NumberOfToken > 4) QuWeight -= input.Weight3;
 		if(input.NumberOfToken > 5) QuWeight -= input.Weight4;
 
+		////         Invalid weight of token
 		if (input.WeightOfQWALLET < 10 || QuWeight < 20)
 		{
 			if (qpi.invocationReward() > 0)
@@ -415,54 +616,147 @@ private:
 			}
 			return;
 		}
+		
+		// 			  Invalid index of token
+		if(input.NumberOfToken > 2) if(input.TypeOfToken1 && input.IndexOfToken1 >= state._NumberOfEnabledExpensiveToken || !input.TypeOfToken1 && input.IndexOfToken1 >= state._NumberOfEnabledGeneralToken) {
+			if (qpi.invocationReward() > 0)
+			{
+				qpi.transfer(qpi.invocator(), qpi.invocationReward());
+			}
+			return;
+		}
 
-		uint64 assetnameOftoken1 = state._TokenList.get(input.IndexOfToken1).assetName;
-		uint64 assetnameOftoken2 = state._TokenList.get(input.IndexOfToken2).assetName;
-		uint64 assetnameOftoken3 = state._TokenList.get(input.IndexOfToken3).assetName;
-		uint64 assetnameOftoken4 = state._TokenList.get(input.IndexOfToken4).assetName;
+		if(input.NumberOfToken > 3) if(input.TypeOfToken2 && input.IndexOfToken2 >= state._NumberOfEnabledExpensiveToken || !input.TypeOfToken2 && input.IndexOfToken2 >= state._NumberOfEnabledGeneralToken) {
+			if (qpi.invocationReward() > 0)
+			{
+				qpi.transfer(qpi.invocator(), qpi.invocationReward());
+			}
+			return;
+		}
 
-		id issuerOfToken1 = state._TokenList.get(input.IndexOfToken1).issuer;
-		id issuerOfToken2 = state._TokenList.get(input.IndexOfToken2).issuer;
-		id issuerOfToken3 = state._TokenList.get(input.IndexOfToken3).issuer;
-		id issuerOfToken4 = state._TokenList.get(input.IndexOfToken4).issuer;
+		if(input.NumberOfToken > 4) if(input.TypeOfToken3 && input.IndexOfToken3 >= state._NumberOfEnabledExpensiveToken || !input.TypeOfToken3 && input.IndexOfToken3 >= state._NumberOfEnabledGeneralToken) {
+			if (qpi.invocationReward() > 0)
+			{
+				qpi.transfer(qpi.invocator(), qpi.invocationReward());
+			}
+			return;
+		}
+
+		if(input.NumberOfToken > 5) if(input.TypeOfToken4 && input.IndexOfToken4 >= state._NumberOfEnabledExpensiveToken || !input.TypeOfToken4 && input.IndexOfToken4 >= state._NumberOfEnabledGeneralToken) {
+			if (qpi.invocationReward() > 0)
+			{
+				qpi.transfer(qpi.invocator(), qpi.invocationReward());
+			}
+			return;
+		}
+
+		uint64 assetnameOftoken1 = input.TypeOfToken1 ? state._ExpensiveTokenList.get(input.IndexOfToken1).assetName: state._GeneralTokenList.get(input.IndexOfToken1).assetName;
+		uint64 assetnameOftoken2 = input.TypeOfToken2 ? state._ExpensiveTokenList.get(input.IndexOfToken2).assetName: state._GeneralTokenList.get(input.IndexOfToken2).assetName;
+		uint64 assetnameOftoken3 = input.TypeOfToken3 ? state._ExpensiveTokenList.get(input.IndexOfToken3).assetName: state._GeneralTokenList.get(input.IndexOfToken3).assetName;
+		uint64 assetnameOftoken4 = input.TypeOfToken4 ? state._ExpensiveTokenList.get(input.IndexOfToken4).assetName: state._GeneralTokenList.get(input.IndexOfToken4).assetName;
+
+		uint16 contractIndex1 = input.TypeOfToken1 ? state._ExpensiveTokenList.get(input.IndexOfToken1).contractIndex: state._GeneralTokenList.get(input.IndexOfToken1).contractIndex;
+		uint16 contractIndex2 = input.TypeOfToken2 ? state._ExpensiveTokenList.get(input.IndexOfToken2).contractIndex: state._GeneralTokenList.get(input.IndexOfToken2).contractIndex;
+		uint16 contractIndex3 = input.TypeOfToken3 ? state._ExpensiveTokenList.get(input.IndexOfToken3).contractIndex: state._GeneralTokenList.get(input.IndexOfToken3).contractIndex;
+		uint16 contractIndex4 = input.TypeOfToken4 ? state._ExpensiveTokenList.get(input.IndexOfToken4).contractIndex: state._GeneralTokenList.get(input.IndexOfToken4).contractIndex;
+
+		id issuerOfToken1 = input.TypeOfToken1 ? state._ExpensiveTokenList.get(input.IndexOfToken1).issuer : state._GeneralTokenList.get(input.IndexOfToken1).issuer;
+		id issuerOfToken2 = input.TypeOfToken2 ? state._ExpensiveTokenList.get(input.IndexOfToken2).issuer : state._GeneralTokenList.get(input.IndexOfToken2).issuer;
+		id issuerOfToken3 = input.TypeOfToken3 ? state._ExpensiveTokenList.get(input.IndexOfToken3).issuer : state._GeneralTokenList.get(input.IndexOfToken3).issuer;
+		id issuerOfToken4 = input.TypeOfToken4 ? state._ExpensiveTokenList.get(input.IndexOfToken4).issuer : state._GeneralTokenList.get(input.IndexOfToken4).issuer;
 
 		id IssuerQWALLET = _mm256_set_epi8(
 			159, 170, 86, 88, 138, 163, 10, 22, 193, 210, 63, 118, 200, 26, 123, 233,
 			100, 223, 40, 231, 166, 64, 98, 26, 117, 108, 211, 34, 206, 186, 192, 98);
 
-		if (input.NumberOfToken > 2 && qpi.numberOfPossessedShares(assetnameOftoken1, issuerOfToken1, qpi.invocator(), qpi.invocator(), SELF_INDEX, SELF_INDEX) < input.initialAmount1)
-		{
-			if (qpi.invocationReward() > 0)
-			{
-				qpi.transfer(qpi.invocator(), qpi.invocationReward());
-			}
-			return;
+		uint32 IndexOfRegisteredExpensiveToken1;
+		uint32 IndexOfRegisteredExpensiveToken2;
+		uint32 IndexOfRegisteredExpensiveToken3;
+		uint32 IndexOfRegisteredExpensiveToken4;
+		for(uint32 i = 0 ; i < state._NumberOfUserProvidedExpensiveToken; i++) if(state._ExpensiveTokenInforOfUser.get(i).ExpensiveTokenProviderID == qpi.invocator() ) {
+			if(assetnameOftoken1 == state._ExpensiveTokenInforOfUser.get(i).TokenNameOfExpensiveTokenUserProvided) IndexOfRegisteredExpensiveToken1 = i;
+			if(assetnameOftoken2 == state._ExpensiveTokenInforOfUser.get(i).TokenNameOfExpensiveTokenUserProvided) IndexOfRegisteredExpensiveToken2 = i;
+			if(assetnameOftoken3 == state._ExpensiveTokenInforOfUser.get(i).TokenNameOfExpensiveTokenUserProvided) IndexOfRegisteredExpensiveToken3 = i;
+			if(assetnameOftoken4 == state._ExpensiveTokenInforOfUser.get(i).TokenNameOfExpensiveTokenUserProvided) IndexOfRegisteredExpensiveToken4 = i;
 		}
-		if (input.NumberOfToken > 3 && qpi.numberOfPossessedShares(assetnameOftoken2, issuerOfToken2, qpi.invocator(), qpi.invocator(), SELF_INDEX, SELF_INDEX) < input.initialAmount2)
+
+		if (input.NumberOfToken > 2)
 		{
-			if (qpi.invocationReward() > 0)
-			{
-				qpi.transfer(qpi.invocator(), qpi.invocationReward());
+			if(!input.TypeOfToken1 && qpi.numberOfPossessedShares(assetnameOftoken1, issuerOfToken1, qpi.invocator(), qpi.invocator(), contractIndex1, contractIndex1) < input.initialAmount1) {
+				if (qpi.invocationReward() > 0)
+				{
+					qpi.transfer(qpi.invocator(), qpi.invocationReward());
+				}
+				return;
 			}
-			return;
+			if(input.TypeOfToken1) {
+				if(state._ExpensiveTokenInforOfUser.get(IndexOfRegisteredExpensiveToken1).AmountOfExpensiveTokenUserProvided < input.initialAmount1 || state._ExpensiveTokenInforOfUser.get(IndexOfRegisteredExpensiveToken1).AmountOfExpensiveTokenUserProvided == input.initialAmount1 && state._ExpensiveTokenInforOfUser.get(IndexOfRegisteredExpensiveToken1).AmountOfMicrotokenOfUser < input.initialAmountForMicrotoken1) {
+					if (qpi.invocationReward() > 0)
+					{
+						qpi.transfer(qpi.invocator(), qpi.invocationReward());
+					}
+					return;
+				}
+			}
 		}
-		if (input.NumberOfToken > 4 && qpi.numberOfPossessedShares(assetnameOftoken3, issuerOfToken3, qpi.invocator(), qpi.invocator(), SELF_INDEX, SELF_INDEX) < input.initialAmount3)
+		if (input.NumberOfToken > 3)
 		{
-			if (qpi.invocationReward() > 0)
-			{
-				qpi.transfer(qpi.invocator(), qpi.invocationReward());
+			if(!input.TypeOfToken2 && qpi.numberOfPossessedShares(assetnameOftoken2, issuerOfToken2, qpi.invocator(), qpi.invocator(), contractIndex2, contractIndex2) < input.initialAmount2) {
+				if (qpi.invocationReward() > 0)
+				{
+					qpi.transfer(qpi.invocator(), qpi.invocationReward());
+				}
+				return;
 			}
-			return;
+			if(input.TypeOfToken2) {
+				if(state._ExpensiveTokenInforOfUser.get(IndexOfRegisteredExpensiveToken2).AmountOfExpensiveTokenUserProvided < input.initialAmount2 || state._ExpensiveTokenInforOfUser.get(IndexOfRegisteredExpensiveToken2).AmountOfExpensiveTokenUserProvided == input.initialAmount2 && state._ExpensiveTokenInforOfUser.get(IndexOfRegisteredExpensiveToken2).AmountOfMicrotokenOfUser < input.initialAmountForMicrotoken2) {
+					if (qpi.invocationReward() > 0)
+					{
+						qpi.transfer(qpi.invocator(), qpi.invocationReward());
+					}
+					return;
+				}
+			}
 		}
-		if (input.NumberOfToken > 5 && qpi.numberOfPossessedShares(assetnameOftoken4, issuerOfToken4, qpi.invocator(), qpi.invocator(), SELF_INDEX, SELF_INDEX) < input.initialAmount4)
+		if (input.NumberOfToken > 4)
 		{
-			if (qpi.invocationReward() > 0)
-			{
-				qpi.transfer(qpi.invocator(), qpi.invocationReward());
+			if(!input.TypeOfToken3 && qpi.numberOfPossessedShares(assetnameOftoken3, issuerOfToken3, qpi.invocator(), qpi.invocator(), contractIndex3, contractIndex3) < input.initialAmount3) {
+				if (qpi.invocationReward() > 0)
+				{
+					qpi.transfer(qpi.invocator(), qpi.invocationReward());
+				}
+				return;
 			}
-			return;
+			if(input.TypeOfToken3) {
+				if(state._ExpensiveTokenInforOfUser.get(IndexOfRegisteredExpensiveToken3).AmountOfExpensiveTokenUserProvided < input.initialAmount3 || state._ExpensiveTokenInforOfUser.get(IndexOfRegisteredExpensiveToken3).AmountOfExpensiveTokenUserProvided == input.initialAmount3 && state._ExpensiveTokenInforOfUser.get(IndexOfRegisteredExpensiveToken3).AmountOfMicrotokenOfUser < input.initialAmountForMicrotoken3) {
+					if (qpi.invocationReward() > 0)
+					{
+						qpi.transfer(qpi.invocator(), qpi.invocationReward());
+					}
+					return;
+				}
+			}
 		}
-		if (qpi.numberOfPossessedShares(QPOOL_QWALLET_TOKEN, IssuerQWALLET, qpi.invocator(), qpi.invocator(), 6, 6) < input.initialAmountOfQWALLET)
+		if (input.NumberOfToken > 5)
+		{
+			if(!input.TypeOfToken4 && qpi.numberOfPossessedShares(assetnameOftoken4, issuerOfToken4, qpi.invocator(), qpi.invocator(), contractIndex4, contractIndex4) < input.initialAmount4) {
+				if (qpi.invocationReward() > 0)
+				{
+					qpi.transfer(qpi.invocator(), qpi.invocationReward());
+				}
+				return;
+			}
+			if(input.TypeOfToken4) {
+				if(state._ExpensiveTokenInforOfUser.get(IndexOfRegisteredExpensiveToken4).AmountOfExpensiveTokenUserProvided < input.initialAmount4 || state._ExpensiveTokenInforOfUser.get(IndexOfRegisteredExpensiveToken4).AmountOfExpensiveTokenUserProvided == input.initialAmount4 && state._ExpensiveTokenInforOfUser.get(IndexOfRegisteredExpensiveToken4).AmountOfMicrotokenOfUser < input.initialAmountForMicrotoken4) {
+					if (qpi.invocationReward() > 0)
+					{
+						qpi.transfer(qpi.invocator(), qpi.invocationReward());
+					}
+					return;
+				}
+			}
+		}
+		if (qpi.numberOfPossessedShares(QPOOL_QWALLET_TOKEN, IssuerQWALLET, qpi.invocator(), qpi.invocator(), 7, 7) < input.initialAmountOfQWALLET)
 		{
 			if (qpi.invocationReward() > 0)
 			{
@@ -471,14 +765,66 @@ private:
 			return;
 		}
 
-		if (input.NumberOfToken > 2)
-			qpi.transferShareOwnershipAndPossession(assetnameOftoken1, issuerOfToken1, qpi.invocator(), qpi.invocator(), input.initialAmount1, QPOOL_CONTRACTID);
-		if (input.NumberOfToken > 3)
-			qpi.transferShareOwnershipAndPossession(assetnameOftoken2, issuerOfToken2, qpi.invocator(), qpi.invocator(), input.initialAmount2, QPOOL_CONTRACTID);
-		if (input.NumberOfToken > 4)
-			qpi.transferShareOwnershipAndPossession(assetnameOftoken3, issuerOfToken3, qpi.invocator(), qpi.invocator(), input.initialAmount3, QPOOL_CONTRACTID);
-		if (input.NumberOfToken > 5)
-			qpi.transferShareOwnershipAndPossession(assetnameOftoken4, issuerOfToken4, qpi.invocator(), qpi.invocator(), input.initialAmount4, QPOOL_CONTRACTID);
+		if (input.NumberOfToken > 2) {
+			if(!input.TypeOfToken1) qpi.transferShareOwnershipAndPossession(assetnameOftoken1, issuerOfToken1, qpi.invocator(), qpi.invocator(), input.initialAmount1, QPOOL_CONTRACTID);
+			else {
+				_ExpensiveTokenState UserInfor = state._ExpensiveTokenInforOfUser.get(IndexOfRegisteredExpensiveToken1);
+				if(UserInfor.AmountOfMicrotokenOfUser >= input.initialAmountForMicrotoken1) {
+					UserInfor.AmountOfExpensiveTokenUserProvided -= input.initialAmount1;
+					UserInfor.AmountOfMicrotokenOfUser -= input.initialAmountForMicrotoken1;
+				}
+				else {
+					UserInfor.AmountOfExpensiveTokenUserProvided = UserInfor.AmountOfExpensiveTokenUserProvided - input.initialAmount1 - 1;
+					UserInfor.AmountOfMicrotokenOfUser = UserInfor.AmountOfMicrotokenOfUser - input.initialAmountForMicrotoken1 + 1000000;				
+				}
+				state._ExpensiveTokenInforOfUser.set(IndexOfRegisteredExpensiveToken1, UserInfor);
+			}
+		}
+		if (input.NumberOfToken > 3) {
+			if(!input.TypeOfToken2) qpi.transferShareOwnershipAndPossession(assetnameOftoken2, issuerOfToken2, qpi.invocator(), qpi.invocator(), input.initialAmount2, QPOOL_CONTRACTID);
+			else {
+				_ExpensiveTokenState UserInfor = state._ExpensiveTokenInforOfUser.get(IndexOfRegisteredExpensiveToken2);
+				if(UserInfor.AmountOfMicrotokenOfUser >= input.initialAmountForMicrotoken2) {
+					UserInfor.AmountOfExpensiveTokenUserProvided -= input.initialAmount2;
+					UserInfor.AmountOfMicrotokenOfUser -= input.initialAmountForMicrotoken2;
+				}
+				else {
+					UserInfor.AmountOfExpensiveTokenUserProvided = UserInfor.AmountOfExpensiveTokenUserProvided - input.initialAmount2 - 1;
+					UserInfor.AmountOfMicrotokenOfUser = UserInfor.AmountOfMicrotokenOfUser - input.initialAmountForMicrotoken2 + 1000000;				
+				}
+				state._ExpensiveTokenInforOfUser.set(IndexOfRegisteredExpensiveToken2, UserInfor);
+			}
+		}
+		if (input.NumberOfToken > 4) {
+			if(!input.TypeOfToken3) qpi.transferShareOwnershipAndPossession(assetnameOftoken3, issuerOfToken3, qpi.invocator(), qpi.invocator(), input.initialAmount3, QPOOL_CONTRACTID);
+			else {
+				_ExpensiveTokenState UserInfor = state._ExpensiveTokenInforOfUser.get(IndexOfRegisteredExpensiveToken3);
+				if(UserInfor.AmountOfMicrotokenOfUser >= input.initialAmountForMicrotoken3) {
+					UserInfor.AmountOfExpensiveTokenUserProvided -= input.initialAmount3;
+					UserInfor.AmountOfMicrotokenOfUser -= input.initialAmountForMicrotoken3;
+				}
+				else {
+					UserInfor.AmountOfExpensiveTokenUserProvided = UserInfor.AmountOfExpensiveTokenUserProvided - input.initialAmount3 - 1;
+					UserInfor.AmountOfMicrotokenOfUser = UserInfor.AmountOfMicrotokenOfUser - input.initialAmountForMicrotoken3 + 1000000;				
+				}
+				state._ExpensiveTokenInforOfUser.set(IndexOfRegisteredExpensiveToken3, UserInfor);
+			}
+		}
+		if (input.NumberOfToken > 5) {
+			if(!input.TypeOfToken4) qpi.transferShareOwnershipAndPossession(assetnameOftoken4, issuerOfToken4, qpi.invocator(), qpi.invocator(), input.initialAmount4, QPOOL_CONTRACTID);
+			else {
+				_ExpensiveTokenState UserInfor = state._ExpensiveTokenInforOfUser.get(IndexOfRegisteredExpensiveToken4);
+				if(UserInfor.AmountOfMicrotokenOfUser >= input.initialAmountForMicrotoken4) {
+					UserInfor.AmountOfExpensiveTokenUserProvided -= input.initialAmount4;
+					UserInfor.AmountOfMicrotokenOfUser -= input.initialAmountForMicrotoken4;
+				}
+				else {
+					UserInfor.AmountOfExpensiveTokenUserProvided = UserInfor.AmountOfExpensiveTokenUserProvided - input.initialAmount4 - 1;
+					UserInfor.AmountOfMicrotokenOfUser = UserInfor.AmountOfMicrotokenOfUser - input.initialAmountForMicrotoken4 + 1000000;				
+				}
+				state._ExpensiveTokenInforOfUser.set(IndexOfRegisteredExpensiveToken4, UserInfor);
+			}
+		}
 		qpi.transferShareOwnershipAndPossession(QPOOL_QWALLET_TOKEN, IssuerQWALLET, qpi.invocator(), qpi.invocator(), input.initialAmountOfQWALLET, QPOOL_CONTRACTID);
 
 		if (qpi.invocationReward() > QPOOL_FEE_CREATE_POOL + QPOOL_TOKEN_TRANSER_FEE * (input.NumberOfToken - 1) + input.initialAmountOfQU)
@@ -497,10 +843,20 @@ private:
 		newPool.liquidity3 = input.initialAmount3;
 		newPool.liquidity4 = input.initialAmount4;
 
+		newPool.liquidityForMicrotoken1 = input.initialAmountForMicrotoken1;
+		newPool.liquidityForMicrotoken2 = input.initialAmountForMicrotoken2;
+		newPool.liquidityForMicrotoken3 = input.initialAmountForMicrotoken3;
+		newPool.liquidityForMicrotoken4 = input.initialAmountForMicrotoken4;
+
 		newPool.IndexOfToken1 = input.IndexOfToken1;
 		newPool.IndexOfToken2 = input.IndexOfToken2;
 		newPool.IndexOfToken3 = input.IndexOfToken3;
 		newPool.IndexOfToken4 = input.IndexOfToken4;
+
+		newPool.TypeOfToken1 = input.TypeOfToken1;
+		newPool.TypeOfToken2 = input.TypeOfToken2;
+		newPool.TypeOfToken3 = input.TypeOfToken3;
+		newPool.TypeOfToken4 = input.TypeOfToken4;
 
 		newPool.Weight1 = input.Weight1;
 		newPool.Weight2 = input.Weight2;
@@ -509,15 +865,17 @@ private:
 		newPool.WeightOfQWALLET = input.WeightOfQWALLET;
 
 		newPool.TotalAmountOfQPT = QPOOL_INITIAL_QPT;
-		newPool.totalSupply = (uint64)100 * input.initialAmountOfQU / QuWeight;
 
 		state._pools.set(state._NumberOfPool, newPool);
 
-		state._QPTAmountOfUser.set(state._NumberOfTotalUser, QPOOL_INITIAL_QPT);
-		state._UserID.set(state._NumberOfTotalUser, qpi.invocator());
-		state._PoolNumberOfUser.set(state._NumberOfTotalUser, state._NumberOfPool);
+		uint32 properIndex = 0;                         // efficiently memory usage
+		for(; properIndex < state._NumberOfTotalUser; properIndex++) if(!state._QPTAmountOfUser.get(properIndex)) break;
+
+		state._QPTAmountOfUser.set(properIndex, QPOOL_INITIAL_QPT);
+		state._UserID.set(properIndex, qpi.invocator());
+		state._PoolNumberOfUser.set(properIndex, state._NumberOfPool);
+		if(properIndex == state._NumberOfTotalUser)	state._NumberOfTotalUser++;     // state._NumberOfTotalUser will not increase as long as there is anyone who the amount of QPT is zero. exactly index of new pool creator would be first zero QPT holder's index.
 		state._NumberOfPool++;
-		state._NumberOfTotalUser++;
 	_
 
 	PUBLIC_PROCEDURE(IssueAsset) 
@@ -567,12 +925,16 @@ private:
 		output.Weight4 = pool.Weight4;
 		output.WeightOfQWALLET = pool.WeightOfQWALLET;
 
+		output.TypeOfToken1 = pool.TypeOfToken1;
+		output.TypeOfToken2 = pool.TypeOfToken2;
+		output.TypeOfToken3 = pool.TypeOfToken3;
+		output.TypeOfToken4 = pool.TypeOfToken4;
+
 		output.totalAmountOfQPT = pool.TotalAmountOfQPT;
-		output.totalSupplyByQU = pool.totalSupply;
 	_
 
 	PUBLIC_PROCEDURE(Swap) 
-		if(input.Poolnum >= state._NumberOfPool || input.IndexOfToken1 >= state._NumberOfEnableToken || input.IndexOfToken2 >= state._NumberOfEnableToken) {
+		if(input.Poolnum >= state._NumberOfPool || input.IndexOfToken1 >= state._NumberOfEnabledGeneralToken || input.IndexOfToken2 >= state._NumberOfEnabledGeneralToken) {
 			if (qpi.invocationReward() > 0)
 			{
 				qpi.transfer(qpi.invocator(), qpi.invocationReward());
@@ -580,10 +942,21 @@ private:
 			return;
 		}
 		_PoolInfo pool = state._pools.get(input.Poolnum);
-		_tokenInfor token1 = state._TokenList.get(input.IndexOfToken1);
-		_tokenInfor token2 = state._TokenList.get(input.IndexOfToken2);
+		uint64 AssetNameOfToken1 = input.TypeOfToken1 ? state._ExpensiveTokenList.get(input.IndexOfToken1).assetName : state._GeneralTokenList.get(input.IndexOfToken1).assetName;
+		uint64 AssetNameOfToken2 = input.TypeOfToken2 ? state._ExpensiveTokenList.get(input.IndexOfToken2).assetName : state._GeneralTokenList.get(input.IndexOfToken2).assetName;
+		
+		uint32 IndexOfRegisteredExpensiveToken1;
+		uint32 IndexOfRegisteredExpensiveToken2;
+		for(uint32 i = 0 ; i < state._NumberOfUserProvidedExpensiveToken; i++) if(state._ExpensiveTokenInforOfUser.get(i).ExpensiveTokenProviderID == qpi.invocator() ) {
+			if(AssetNameOfToken1 == state._ExpensiveTokenInforOfUser.get(i).TokenNameOfExpensiveTokenUserProvided) IndexOfRegisteredExpensiveToken1 = i;
+			if(AssetNameOfToken2 == state._ExpensiveTokenInforOfUser.get(i).TokenNameOfExpensiveTokenUserProvided) IndexOfRegisteredExpensiveToken2 = i;
+		}
 
-		if (qpi.numberOfPossessedShares(token1.assetName, token1.issuer, qpi.invocator(), qpi.invocator(), SELF_INDEX, SELF_INDEX) < input.AmountOfToken1)
+		id IssuerOfToken1 = input.TypeOfToken1 ? state._ExpensiveTokenList.get(input.IndexOfToken1).issuer : state._GeneralTokenList.get(input.IndexOfToken1).issuer;
+		id IssuerOfToken2 = input.TypeOfToken2 ? state._ExpensiveTokenList.get(input.IndexOfToken2).issuer : state._GeneralTokenList.get(input.IndexOfToken2).issuer;
+
+		// insufficient amount of token
+		if (input.TypeOfToken1 && state._ExpensiveTokenInforOfUser.get(IndexOfRegisteredExpensiveToken1).AmountOfExpensiveTokenUserProvided * 1000000 + state._ExpensiveTokenInforOfUser.get(IndexOfRegisteredExpensiveToken1).AmountOfMicrotokenOfUser < input.AmountOfToken1 || !input.TypeOfToken1 && qpi.numberOfPossessedShares(AssetNameOfToken1, IssuerOfToken1, qpi.invocator(), qpi.invocator(), SELF_INDEX, SELF_INDEX) < input.AmountOfToken1)
 		{
 			if (qpi.invocationReward() > 0)
 			{
@@ -596,6 +969,8 @@ private:
 		uint64 ValueOfToken2ByQu;
 		uint64 liquidityOfToken1;
 		uint64 liquidityOfToken2;
+		uint32 liquidityForMicrotokenOfToken1;
+		uint32 liquidityForMicrotokenOfToken2;
 		uint8 weightOfToken1;
 		uint8 weightOfToken2;
 
@@ -605,21 +980,29 @@ private:
 		if(pool.NumberOfToken > 4) weightOfQu -= pool.Weight3;
 		if(pool.NumberOfToken > 5) weightOfQu -= pool.Weight4;
 
-		if(input.IndexOfToken1 == pool.IndexOfToken1) {liquidityOfToken1 = pool.liquidity1; weightOfToken1 = pool.Weight1; }
-		if(input.IndexOfToken1 == pool.IndexOfToken2) {liquidityOfToken1 = pool.liquidity2; weightOfToken1 = pool.Weight2; }
-		if(input.IndexOfToken1 == pool.IndexOfToken3) {liquidityOfToken1 = pool.liquidity3; weightOfToken1 = pool.Weight3; }
-		if(input.IndexOfToken1 == pool.IndexOfToken4) {liquidityOfToken1 = pool.liquidity4; weightOfToken1 = pool.Weight4; }
+		if(input.IndexOfToken1 == pool.IndexOfToken1) {liquidityOfToken1 = pool.liquidity1; liquidityForMicrotokenOfToken1 = pool.liquidityForMicrotoken1; weightOfToken1 = pool.Weight1; }
+		if(input.IndexOfToken1 == pool.IndexOfToken2) {liquidityOfToken1 = pool.liquidity2; liquidityForMicrotokenOfToken1 = pool.liquidityForMicrotoken2; weightOfToken1 = pool.Weight2; }
+		if(input.IndexOfToken1 == pool.IndexOfToken3) {liquidityOfToken1 = pool.liquidity3; liquidityForMicrotokenOfToken1 = pool.liquidityForMicrotoken3; weightOfToken1 = pool.Weight3; }
+		if(input.IndexOfToken1 == pool.IndexOfToken4) {liquidityOfToken1 = pool.liquidity4; liquidityForMicrotokenOfToken1 = pool.liquidityForMicrotoken4; weightOfToken1 = pool.Weight4; }
 
-		if(input.IndexOfToken2 == pool.IndexOfToken1) {liquidityOfToken2 = pool.liquidity1; weightOfToken2 = pool.Weight1; }
-		if(input.IndexOfToken2 == pool.IndexOfToken2) {liquidityOfToken2 = pool.liquidity2; weightOfToken2 = pool.Weight2; }
-		if(input.IndexOfToken2 == pool.IndexOfToken3) {liquidityOfToken2 = pool.liquidity3; weightOfToken2 = pool.Weight3; }
-		if(input.IndexOfToken2 == pool.IndexOfToken4) {liquidityOfToken2 = pool.liquidity4; weightOfToken2 = pool.Weight4; }
+		if(input.IndexOfToken2 == pool.IndexOfToken1) {liquidityOfToken2 = pool.liquidity1; liquidityForMicrotokenOfToken2 = pool.liquidityForMicrotoken1; weightOfToken2 = pool.Weight1; }
+		if(input.IndexOfToken2 == pool.IndexOfToken2) {liquidityOfToken2 = pool.liquidity2; liquidityForMicrotokenOfToken2 = pool.liquidityForMicrotoken2; weightOfToken2 = pool.Weight2; }
+		if(input.IndexOfToken2 == pool.IndexOfToken3) {liquidityOfToken2 = pool.liquidity3; liquidityForMicrotokenOfToken2 = pool.liquidityForMicrotoken3; weightOfToken2 = pool.Weight3; }
+		if(input.IndexOfToken2 == pool.IndexOfToken4) {liquidityOfToken2 = pool.liquidity4; liquidityForMicrotokenOfToken2 = pool.liquidityForMicrotoken4; weightOfToken2 = pool.Weight4; }
 
 		// Begin to calculate the BIG numbers
 		// 
+		// ORIGINAL FORMULAS
+		//
+		// if token1 and token2 are general token
 		// ValueOfToken1ByQu = pool.liquidityOfQU * weightOfToken1 / liquidityOfToken1 / weightOfQu;   // Amount of qu per 1 token1 in current pool
 		// ValueOfToken2ByQu = pool.liquidityOfQU * weightOfToken2 / liquidityOfToken2 / weightOfQu;	// Amount of qu per 1 token2 in current pool
 		//
+		// if token1 and token 2 are Expensive token
+		//
+		// ValueOfToken1ByQu = pool.liquidityOfQU * weightOfToken1 / (liquidityOfToken1 * 1000000 + liquidityForMicrotokenOfToken1) / weightOfQu;   // Amount of qu per 1 token1 in current pool
+		// ValueOfToken2ByQu = pool.liquidityOfQU * weightOfToken2 / (liquidityOfToken2 * 1000000 + liquidityForMicrotokenOfToken2) / weightOfQu;	// Amount of qu per 1 token2 in current pool
+		// 
 
 		BIGNumberToString_input BigliquidityOfQUInput;
 		BIGNumberToString_output BigliquidityOfQUOutput;
@@ -645,11 +1028,75 @@ private:
 		
 		CALL(BIGNumberToString, BigliquidityOfToken1Input, BigliquidityOfToken1Output);
 
+		BIGMultiply_input BigExpensiveToken1ToMicroToken1_input;              // convert the amount of expensive token1 to microtoken
+		BIGMultiply_output BigExpensiveToken1ToMicroToken1_output;            // convert the amount of expensive token1 to microtoken
+
+		BIGPlus_input BigResultOfLiquidityForExpensiveToken1_input;           // total amount of microtoken for expensive token1
+		BIGPlus_output BigResultOfLiquidityForExpensiveToken1_output;         // total amount of microtoken for expensive token1
+		
+		if(input.TypeOfToken1) {     // if token1 is expensive token, liquidityOfToken1 should be (liquidityOfToken1 * 1000000 + liquidityForMicrotokenOfToken1)
+			// calculation for (liquidityOfToken1 * 1000000)
+			for(uint8 i = 0 ; i < BigliquidityOfToken1Output.len; i++) BigExpensiveToken1ToMicroToken1_input.a.set(i, BigliquidityOfToken1Output.result.get(i));
+			BigExpensiveToken1ToMicroToken1_input.alen = BigliquidityOfToken1Output.len;
+			BigExpensiveToken1ToMicroToken1_input.b.set(0, '1');                                          //  b is 1000000
+			for(uint8 i = 1 ; i < 7; i++) BigExpensiveToken1ToMicroToken1_input.b.set(i, '0');            //  b is 1000000
+			BigExpensiveToken1ToMicroToken1_input.blen = 7;
+
+			CALL(BIGMultiply, BigExpensiveToken1ToMicroToken1_input, BigExpensiveToken1ToMicroToken1_output);
+
+			BIGNumberToString_input BigMicroToken1_Input;                                           ///  liquidityForMicrotokenOfToken1 to string type
+			BIGNumberToString_output BigMicroToken1_Output;                                         ///  liquidityForMicrotokenOfToken1 to string type
+			BigMicroToken1_Input.a = liquidityForMicrotokenOfToken1;                                ///  liquidityForMicrotokenOfToken1 to string type
+			 
+			CALL(BIGNumberToString, BigMicroToken1_Input, BigMicroToken1_Output);               ///  liquidityForMicrotokenOfToken1 to string type
+
+			/////////////////////calculation for (liquidityOfToken1 * 1000000 + liquidityForMicrotokenOfToken1)//////////////////
+
+			for(uint8 i = 0 ; i < BigExpensiveToken1ToMicroToken1_output.resultlen; i++) BigResultOfLiquidityForExpensiveToken1_input.a.set(i, BigExpensiveToken1ToMicroToken1_output.result.get(i));
+			BigResultOfLiquidityForExpensiveToken1_input.alen = BigExpensiveToken1ToMicroToken1_output.resultlen;
+			for(uint8 i = 0 ; i < BigMicroToken1_Output.len; i++) BigResultOfLiquidityForExpensiveToken1_input.b.set(i, BigMicroToken1_Output.result.get(i));
+			BigResultOfLiquidityForExpensiveToken1_input.blen = BigMicroToken1_Output.len;
+
+			CALL(BIGPlus, BigResultOfLiquidityForExpensiveToken1_input, BigResultOfLiquidityForExpensiveToken1_output);
+		}
+
 		BIGNumberToString_input BigliquidityOfToken2Input;
 		BIGNumberToString_output BigliquidityOfToken2Output;
 		BigliquidityOfToken2Input.a = liquidityOfToken2;
 		
 		CALL(BIGNumberToString, BigliquidityOfToken2Input, BigliquidityOfToken2Output);
+
+		BIGMultiply_input BigExpensiveToken2ToMicroToken2_input;              // convert the amount of expensive token2 to microtoken
+		BIGMultiply_output BigExpensiveToken2ToMicroToken2_output;            // convert the amount of expensive token2 to microtoken
+
+		BIGPlus_input BigResultOfLiquidityForExpensiveToken2_input;           // total microtoken for expensive token2
+		BIGPlus_output BigResultOfLiquidityForExpensiveToken2_output;         // total microtoken for expensive token2
+		
+		if(input.TypeOfToken2) {     // if token2 is expensive token, liquidityOfToken2 should be (liquidityOfToken2 * 1000000 + liquidityForMicrotokenOfToken2)
+			// calculation for (liquidityOfToken2 * 1000000)
+			for(uint8 i = 0 ; i < BigliquidityOfToken2Output.len; i++) BigExpensiveToken2ToMicroToken2_input.a.set(i, BigliquidityOfToken2Output.result.get(i));
+			BigExpensiveToken2ToMicroToken2_input.alen = BigliquidityOfToken2Output.len;
+			BigExpensiveToken2ToMicroToken2_input.b.set(0, '1');                                          //  b is 1000000
+			for(uint8 i = 1 ; i < 7; i++) BigExpensiveToken2ToMicroToken2_input.b.set(i, '0');            //  b is 1000000
+			BigExpensiveToken2ToMicroToken2_input.blen = 7;
+
+			CALL(BIGMultiply, BigExpensiveToken2ToMicroToken2_input, BigExpensiveToken2ToMicroToken2_output);
+
+			BIGNumberToString_input BigMicroToken2_Input;                                           ///  liquidityForMicrotokenOfToken2 to string type
+			BIGNumberToString_output BigMicroToken2_Output;                                         ///  liquidityForMicrotokenOfToken2 to string type
+			BigMicroToken2_Input.a = liquidityForMicrotokenOfToken2;                                ///  liquidityForMicrotokenOfToken2 to string type
+			 
+			CALL(BIGNumberToString, BigMicroToken2_Input, BigMicroToken2_Output);               ///  liquidityForMicrotokenOfToken2 to string type
+
+			/////////////////////calculation for (liquidityOfToken2 * 1000000 + liquidityForMicrotokenOfToken2)//////////////////
+
+			for(uint8 i = 0 ; i < BigExpensiveToken2ToMicroToken2_output.resultlen; i++) BigResultOfLiquidityForExpensiveToken2_input.a.set(i, BigExpensiveToken2ToMicroToken2_output.result.get(i));
+			BigResultOfLiquidityForExpensiveToken2_input.alen = BigExpensiveToken2ToMicroToken2_output.resultlen;
+			for(uint8 i = 0 ; i < BigMicroToken2_Output.len; i++) BigResultOfLiquidityForExpensiveToken2_input.b.set(i, BigMicroToken2_Output.result.get(i));
+			BigResultOfLiquidityForExpensiveToken2_input.blen = BigMicroToken2_Output.len;
+
+			CALL(BIGPlus, BigResultOfLiquidityForExpensiveToken2_input, BigResultOfLiquidityForExpensiveToken2_output);
+		}
 
 		BIGNumberToString_input BigweightOfQuInput;
 		BIGNumberToString_output BigweightOfQuOutput;
@@ -672,8 +1119,14 @@ private:
 
 		for(uint8 i = 0 ; i < liquidityOfQUMultipleWeightOfToken1_output.resultlen; i++) liquidityOfQUMultipleWeightOfToken1DivideliquidityOfToken1_input.a.set(i, liquidityOfQUMultipleWeightOfToken1_output.result.get(i));
 		liquidityOfQUMultipleWeightOfToken1DivideliquidityOfToken1_input.alen = liquidityOfQUMultipleWeightOfToken1_output.resultlen;
-		for(uint8 i = 0 ; i < BigliquidityOfToken1Output.len; i++) liquidityOfQUMultipleWeightOfToken1DivideliquidityOfToken1_input.b.set(i, BigliquidityOfToken1Output.result.get(i));
-		liquidityOfQUMultipleWeightOfToken1DivideliquidityOfToken1_input.blen = BigliquidityOfToken1Output.len;
+		if(!input.TypeOfToken1) {
+			for(uint8 i = 0 ; i < BigliquidityOfToken1Output.len; i++) liquidityOfQUMultipleWeightOfToken1DivideliquidityOfToken1_input.b.set(i, BigliquidityOfToken1Output.result.get(i));
+			liquidityOfQUMultipleWeightOfToken1DivideliquidityOfToken1_input.blen = BigliquidityOfToken1Output.len;
+		}
+		else {
+			for(uint8 i = 0 ; i < BigResultOfLiquidityForExpensiveToken1_output.resultlen; i++) liquidityOfQUMultipleWeightOfToken1DivideliquidityOfToken1_input.b.set(i, BigResultOfLiquidityForExpensiveToken1_output.result.get(i));
+			liquidityOfQUMultipleWeightOfToken1DivideliquidityOfToken1_input.blen = BigResultOfLiquidityForExpensiveToken1_output.resultlen;
+		}
 
 		CALL(BIGDiv, liquidityOfQUMultipleWeightOfToken1DivideliquidityOfToken1_input, liquidityOfQUMultipleWeightOfToken1DivideliquidityOfToken1_output);
 		
@@ -703,8 +1156,14 @@ private:
 
 		for(uint8 i = 0 ; i < liquidityOfQUMultipleWeightOfToken2_output.resultlen; i++) liquidityOfQUMultipleWeightOfToken2DivideliquidityOfToken2_input.a.set(i, liquidityOfQUMultipleWeightOfToken2_output.result.get(i));
 		liquidityOfQUMultipleWeightOfToken2DivideliquidityOfToken2_input.alen = liquidityOfQUMultipleWeightOfToken2_output.resultlen;
-		for(uint8 i = 0 ; i < BigliquidityOfToken2Output.len; i++) liquidityOfQUMultipleWeightOfToken2DivideliquidityOfToken2_input.b.set(i, BigliquidityOfToken2Output.result.get(i));
-		liquidityOfQUMultipleWeightOfToken2DivideliquidityOfToken2_input.blen = BigliquidityOfToken2Output.len;
+		if(!input.TypeOfToken2) {
+			for(uint8 i = 0 ; i < BigliquidityOfToken2Output.len; i++) liquidityOfQUMultipleWeightOfToken2DivideliquidityOfToken2_input.b.set(i, BigliquidityOfToken2Output.result.get(i));
+			liquidityOfQUMultipleWeightOfToken2DivideliquidityOfToken2_input.blen = BigliquidityOfToken2Output.len;
+		}
+		else {
+			for(uint8 i = 0 ; i < BigResultOfLiquidityForExpensiveToken2_output.resultlen; i++) liquidityOfQUMultipleWeightOfToken2DivideliquidityOfToken2_input.b.set(i, BigResultOfLiquidityForExpensiveToken2_output.result.get(i));
+			liquidityOfQUMultipleWeightOfToken2DivideliquidityOfToken2_input.blen = BigResultOfLiquidityForExpensiveToken2_output.resultlen;
+		}
 
 		CALL(BIGDiv, liquidityOfQUMultipleWeightOfToken2DivideliquidityOfToken2_input, liquidityOfQUMultipleWeightOfToken2DivideliquidityOfToken2_output);
 		
@@ -761,12 +1220,39 @@ private:
 			return;
 		}
 
-		if(liquidityOfToken1 <= input.AmountOfToken1) {   /// lack of liquidity for token1 in current pool 
+		if(!input.TypeOfToken1 && liquidityOfToken1 <= input.AmountOfToken1) {   /// if token1 is general token,  lack of liquidity for token1 in current pool 
 			if (qpi.invocationReward() > 0)
 			{
 				qpi.transfer(qpi.invocator(), qpi.invocationReward());
 			}
 			return;
+		}
+		
+		if(input.TypeOfToken1) {
+
+			BIGNumberToString_input BigAmountOfToken1Input;
+			BIGNumberToString_output BigAmountOfToken1Output;
+			BigAmountOfToken1Input.a = input.AmountOfToken1;
+			
+			CALL(BIGNumberToString, BigAmountOfToken1Input, BigAmountOfToken1Output);
+
+			BIGSmallOrEqualComparison_input CheckLiquidityOfPool_Input;
+			BIGSmallOrEqualComparison_output CheckLiquidityOfPool_Output;
+
+			for(uint8 i = 0 ; i < BigResultOfLiquidityForExpensiveToken1_output.resultlen; i++) CheckLiquidityOfPool_Input.a.set(i, BigResultOfLiquidityForExpensiveToken1_output.result.get(i));
+			CheckLiquidityOfPool_Input.alen = BigResultOfLiquidityForExpensiveToken1_output.resultlen;
+			for(uint8 i = 0 ; i < BigAmountOfToken1Output.len; i++) CheckLiquidityOfPool_Input.b.set(i, BigAmountOfToken1Output.result.get(i));
+			CheckLiquidityOfPool_Input.blen = BigAmountOfToken1Output.len;
+
+			CALL(BIGSmallOrEqualComparison, CheckLiquidityOfPool_Input, CheckLiquidityOfPool_Output);
+
+			if(CheckLiquidityOfPool_Output.result) {     /// if token1 is expensive token,  lack of liquidity for token1 in current pool 
+				if (qpi.invocationReward() > 0)
+				{
+					qpi.transfer(qpi.invocator(), qpi.invocationReward());
+				}
+				return;
+			}
 		}
 
 		if(NumberValueOfToken1ByQu_output.result < NumberValueOfToken2ByQu_output.result && input.AmountOfToken1 < NumberValueOfToken2ByQu_output.result / NumberValueOfToken1ByQu_output.result) { // lack of amount of token1 for 1 token2
@@ -849,8 +1335,32 @@ private:
 		}
 
 		qpi.transfer(qpi.invocator(), NumberAmountOfRefundQu_output.result);
-		qpi.transferShareOwnershipAndPossession(token1.assetName, token1.issuer, qpi.invocator(), qpi.invocator(), input.AmountOfToken1, QPOOL_CONTRACTID);   // transfer token1 to pool
-		qpi.transferShareOwnershipAndPossession(token2.assetName, token2.issuer, QPOOL_CONTRACTID, QPOOL_CONTRACTID, NumberAmountOftransferredToken2_output.result, qpi.invocator());  // transfer token2 to swapper
+		if(!input.TypeOfToken1) qpi.transferShareOwnershipAndPossession(AssetNameOfToken1, IssuerOfToken1, qpi.invocator(), qpi.invocator(), input.AmountOfToken1, QPOOL_CONTRACTID);   // if token1 is general token,  transfer token1 to pool
+		else {																																											// if token1 is expensive token, change the user's account for expensive token in Qpool
+			_ExpensiveTokenState UserInfor = state._ExpensiveTokenInforOfUser.get(IndexOfRegisteredExpensiveToken1);
+			if(UserInfor.AmountOfMicrotokenOfUser >= input.AmountOfToken1) {
+				UserInfor.AmountOfExpensiveTokenUserProvided -= input.AmountOfToken1 / 1000000;
+				UserInfor.AmountOfMicrotokenOfUser -= input.AmountOfToken1 % 1000000;
+			}
+			else {
+				UserInfor.AmountOfExpensiveTokenUserProvided = UserInfor.AmountOfExpensiveTokenUserProvided - input.AmountOfToken1 / 1000000 - 1;
+				UserInfor.AmountOfMicrotokenOfUser = UserInfor.AmountOfMicrotokenOfUser - input.AmountOfToken1 % 1000000 + 1000000;				
+			}
+			state._ExpensiveTokenInforOfUser.set(IndexOfRegisteredExpensiveToken1, UserInfor);
+		}
+		if(!input.TypeOfToken2) qpi.transferShareOwnershipAndPossession(AssetNameOfToken2, IssuerOfToken2, QPOOL_CONTRACTID, QPOOL_CONTRACTID, NumberAmountOftransferredToken2_output.result, qpi.invocator());  // if token2 is general token, transfer token2 to swapper
+		else {																																																	 // if token2 is expensive token, change the user's account for expensive token in Qpool
+			_ExpensiveTokenState UserInfor = state._ExpensiveTokenInforOfUser.get(IndexOfRegisteredExpensiveToken2);
+			if(UserInfor.AmountOfMicrotokenOfUser >= NumberAmountOftransferredToken2_output.result) {
+				UserInfor.AmountOfExpensiveTokenUserProvided -= NumberAmountOftransferredToken2_output.result / 1000000;
+				UserInfor.AmountOfMicrotokenOfUser -= NumberAmountOftransferredToken2_output.result % 1000000;
+			}
+			else {
+				UserInfor.AmountOfExpensiveTokenUserProvided = UserInfor.AmountOfExpensiveTokenUserProvided - NumberAmountOftransferredToken2_output.result / 1000000 - 1;
+				UserInfor.AmountOfMicrotokenOfUser = UserInfor.AmountOfMicrotokenOfUser - NumberAmountOftransferredToken2_output.result % 1000000 + 1000000;				
+			}
+			state._ExpensiveTokenInforOfUser.set(IndexOfRegisteredExpensiveToken2, UserInfor);
+		}
 	_
 
 	//cast int to uint8
@@ -1783,6 +2293,7 @@ private:
 		REGISTER_USER_FUNCTION(PoolList, 3);
 		REGISTER_USER_FUNCTION(GetValueOfToken, 4);
 		REGISTER_USER_FUNCTION(GetBIGStatus, 5);
+		REGISTER_USER_FUNCTION(GetAmountOfExpensivetokenUserDeposited, 6);
 
 		REGISTER_USER_PROCEDURE(CreateLiquidityPool, 1);
 		REGISTER_USER_PROCEDURE(IssueAsset, 2);
@@ -1799,16 +2310,21 @@ private:
 		REGISTER_USER_PROCEDURE(BIGSmallOrEqualComparison, 18);
 		REGISTER_USER_PROCEDURE(BIGBigComparison, 19);
 		REGISTER_USER_PROCEDURE(BIGSmallComparison, 20);
+		REGISTER_USER_PROCEDURE(DepositExpensivetoken, 21);
+		REGISTER_USER_PROCEDURE(WithdrawExpensivetoken, 22);
 	_
 	INITIALIZE
 
 		state._NumberOfPool = 0;
 		state._NumberOfTotalUser = 0;
-		state._NumberOfEnableToken = 1;
-		_tokenInfor QwalletToken;
+		state._NumberOfEnabledGeneralToken = 1;
+		state._NumberOfEnabledExpensiveToken = 0;
+		state._NumberOfUserProvidedExpensiveToken = 0;
+		_GeneralTokenInfor QwalletToken;
 		QwalletToken.assetName = QPOOL_QWALLET_TOKEN;
+		QwalletToken.contractIndex = 7;
 		QwalletToken.issuer = QPOOL_ISSUER_QWALLET;
-		state._TokenList.set(0, QwalletToken);
+		state._GeneralTokenList.set(0, QwalletToken);
 	_
 
 	BEGIN_EPOCH
@@ -1824,5 +2340,6 @@ private:
 	_
 
 	EXPAND 
+		
 	_
 };
