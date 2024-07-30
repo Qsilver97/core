@@ -142,7 +142,8 @@ public:
             qpi.getEntity(state.currentID, state.entitys);
             if (state.entitys.incomingAmount - state.entitys.outgoingAmount > 0)
             {
-                qpi.transferShareOwnershipAndPossession(input.assetName, input.issuer, qpi.invocator(), qpi.invocator(), 1, state.entitys.publicKey);
+                //qpi.transferShareOwnershipAndPossession(input.assetName, input.issuer, qpi.invocator(), qpi.invocator(), 1, state.entitys.publicKey);
+                qpi.transfer(state.entitys.publicKey,1);
                 output.transferredAmount++;
             }
         }
